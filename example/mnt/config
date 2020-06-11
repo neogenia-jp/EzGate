@@ -1,0 +1,13 @@
+domain('lets-test.neogenia.co.jp') {
+  proxy_to 'nginx1'
+}
+
+domain('www-test.neogenia.co.jp') {
+  proxy_to "apache1", "apache2"
+  cert_email 'w.maeda@neogenia.co.jp'
+
+  nginx_config <<~_CONFIG_
+    # change upload size max
+    client_max_body_size 100M;
+  _CONFIG_
+}

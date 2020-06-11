@@ -1,0 +1,4 @@
+check process crond with pidfile /var/run/crond.pid
+   start program = "/etc/init.d/cron start"
+   stop program = "/etc/init.d/cron stop"
+

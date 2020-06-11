@@ -1,0 +1,33 @@
+version: '2'
+
+services:
+  nginx1:
+    container_name: nginx1
+    image: nginxdemos/hello
+
+  apache1:
+    container_name: apache1
+    image: httpd:2.4
+
+  apache2:
+    container_name: apache2
+    image: httpd:2.4
+
+  front:
+    container_name: front
+    image: generic-prox
+    build:
+      context: ../docker/
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./mnt:/mnt/
+    environment:
+      CONFIG_PATH: /mnt/config
+      CERT_EMAIL: w.maeda@neogenia.co.jp
+      DEBUG: 1
+    depends_on:
+      - nginx1
+      - apache1
+      - apache2

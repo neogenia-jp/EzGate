@@ -15,7 +15,7 @@ services:
 
   front:
     container_name: front
-    image: generic-prox
+    image: neogenia/ez-gate
     build:
       context: ../docker/
     ports:

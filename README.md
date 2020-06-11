@@ -8,7 +8,7 @@ Ez Gate is a docker container that aims to make it easy to set up a reverse prox
 
 ### exapmle 1:
 
-There's already a web app, and it's running at 192.168.1.101:3000, and If you want to assign the domain to www1.expample.com, you can use the You can start the reverse proxy as follows
+There's already a web app, and it's running at 192.168.1.101:3000, and If you want to assign the domain to www1.expample.com, you can use the You can start the reverse proxy as follows:
 
 ```bash
 docker run -ti -p80:80 -p443:443 -e PROXY_TO=www1.expample.com,192.168.1.101:3000 -e CERT_EMAIL=your@email.com neogenia/EzGate:latest
@@ -16,7 +16,7 @@ docker run -ti -p80:80 -p443:443 -e PROXY_TO=www1.expample.com,192.168.1.101:300
 
 Here, `CERT_EMAIL` is the email address of the HTTPS certificate you want to register with Let'sEncrypt.
 
-### 例2
+### example 2:
 
 You can also assign multiple domains to multiple web apps.
 
@@ -85,7 +85,7 @@ domain('www.example.com') {
 
 It is possible to write multiple `domain()` entries.
 
-In addition, you can specify `cert_email` `nginx_config` options as follows.
+In addition, you can specify `cert_email` `nginx_config` options as follows:
 
 ```
 domain('www2.example.com') {
@@ -96,6 +96,7 @@ domain('www2.example.com') {
     # change upload size max
     client_max_body_size 100M;
   _CONFIG_
+}
 ```
 
 Since this configuration file is interpreted as a Ruby program, you can also define variables and methods.

@@ -94,6 +94,7 @@ domain('www2.example.com') {
     # change upload size max
     client_max_body_size 100M;
   _CONFIG_
+}
 ```
 
 この設定ファイルは Ruby プログラムとして解釈されますので、変数やメソッドの定義も可能です。

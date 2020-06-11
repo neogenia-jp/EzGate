@@ -1,5 +1,9 @@
 version: '2'
 
+volumes:
+  cert_dir:
+    driver: local
+
 services:
   nginx1:
     container_name: nginx1
@@ -22,6 +26,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
+      - cert_dir:/etc/letsencrypt
       - ./mnt:/mnt/
     environment:
       CONFIG_PATH: /mnt/config

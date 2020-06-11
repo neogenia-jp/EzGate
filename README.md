@@ -2,7 +2,7 @@
 
 Ez Gate is a docker container that aims to make it easy to set up a reverse proxy that supports HTTPS.
 
-[日本語版](./README.ja)
+[日本語版](./README.ja.md)
 
 ## Quick start
 

@@ -69,14 +69,16 @@ class Config
     File.open(file_path || output_path, 'w') {|f| output f}
   end
 
-  def setup_letsencrypt
-    output_to_file
-    shell_exec 'nginx -t'
-    shell_exec 'service nginx restart'
-    sleep 2
+  def setup_letsencrypt(force=nil)
+    if force || !File.exist?("/etc/letsencrypt/live/#{domain}")
+      output_to_file
+      shell_exec 'nginx -t'
+      shell_exec 'service nginx restart'
+      sleep 2
     
-    LetsEncrypt.setup self
-    sleep 2
+      LetsEncrypt.setup self
+      sleep 2
+    end
 
     @enable_ssl = true
     output_to_file
@@ -195,7 +197,7 @@ backup_dir(Config.output_dir) do
   # setup
   configurations.each do |config|
     log("----- start setup of Let's Encrypt for #{config.domain} -----")
-    config.setup_letsencrypt
+    config.setup_letsencrypt ENV['FORCE_MODE']
   end
   log("----- finish all setups successfully -----")
 end

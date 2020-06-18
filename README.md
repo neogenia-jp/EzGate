@@ -131,7 +131,7 @@ mkcert -install # First time only
 mkcert -key-file certs/key.pem -cert-file certs /cert.pem localhost
 
 # Volume mount the folder for storing certificates and specify those files in an environment variables
-docker run -ti -p80:80 -p443:443 -e PROXY_TO= localhost,webapp1:3000 -e CERT_FILE=/mnt/cert .pem -e KEY_FILE=/mnt/key.pem -v `pwd`/certs:/ mnt neogenia/ez-gate:latest
+docker run -ti -p80:80 -p443:443 -e PROXY_TO= localhost,webapp1:3000 -e CERT_FILE=/mnt/cert.pem -e KEY_FILE=/mnt/key.pem -v `pwd`/certs:/ mnt neogenia/ez-gate:latest
 ```
 
 If you specify it in the configuration file, it looks like the following:

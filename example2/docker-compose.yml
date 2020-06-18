@@ -1,0 +1,26 @@
+version: '2'
+
+volumes:
+  cert_dir:
+    driver: local
+
+services:
+  nginx:
+    container_name: nginx
+    image: nginxdemos/hello
+
+  local_gate:
+    container_name: local_gate
+    image: neogenia/ez-gate:20200618
+    build:
+      context: ../docker/
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./mnt:/mnt/
+    environment:
+      CONFIG_PATH: /mnt/config
+      DEBUG: 1
+    depends_on:
+      - nginx

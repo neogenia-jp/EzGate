@@ -104,3 +104,45 @@ The `domain` `cert_email` `nginx_config` etc. are all predefined methods.
 
 Note that `cert_email` takes precedence over the environment variable `CERT_EMAIL` if it is specified.
 
+## Reload the configuration file.
+
+If you change the configuration file, you can run the reload command as follows
+to change the You can reflect the contents of the configuration file without stopping the reverse proxy.
+
+```bash
+docker exec -ti ez-gate /var/scripts/reload_ config.rb
+```
+
+## Specify a separate certificate file (e.g. for debugging)
+
+EzGate automatically uses Let's Encrypt to create an HTTPS certificate file,
+but you can also run it using a pre-made certificate file.
+
+If you build a local development environment,
+you can avoid the error by specifying a certificate prepared by `mkcert` and so on,
+because Let's Encrypt certificate cannot be created automatically.
+
+```bash
+# Create a folder for storing certificates
+mkdir certs
+
+# to Generate a certificate file for the localhost using mkcert
+mkcert -install # First time only
+mkcert -key-file certs/key.pem -cert-file certs /cert.pem localhost
+
+# Volume mount the folder for storing certificates and specify those files in an environment variables
+docker run -ti -p80:80 -p443:443 -e PROXY_TO= localhost,webapp1:3000 -e CERT_FILE=/mnt/cert .pem -e KEY_FILE=/mnt/key.pem -v `pwd`/certs:/ mnt neogenia/ez-gate:latest
+```
+
+If you specify it in the configuration file, it looks like the following:
+
+```
+domain('localhost') {
+  proxy_to 'webapp1:3000'
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}
+```
+
+See the `example2/` directory in this repository.

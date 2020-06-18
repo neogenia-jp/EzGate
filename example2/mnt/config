@@ -1,0 +1,6 @@
+domain('localhost') {
+  proxy_to 'nginx'
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}

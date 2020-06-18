@@ -1,6 +1,6 @@
-# Ez Gate
+# EzGate
 
-Ez Gate は HTTPS に対応したリバースプロキシをお手軽に立てることができる事を目指した Docker コンテナです。
+EzGate は HTTPS に対応したリバースプロキシをお手軽に立てることができる事を目指した Docker コンテナです。
 
 ## クイックスタート
 
@@ -9,7 +9,7 @@ Ez Gate は HTTPS に対応したリバースプロキシをお手軽に立て�
 Webアプリが既にあり、それが 192.168.1.101:3000 で稼働していて、ドメインを www1.expample.com に割り当てたいとすると、それに対するリバースプロキシを以下のようにして起動することができます。
 
 ```bash
-docker run -ti -p80:80 -p443:443 -e PROXY_TO=www1.expample.com,192.168.1.101:3000 -e CERT_EMAIL=your@email.com neogenia/EzGate:latest
+docker run -ti -p80:80 -p443:443 -e PROXY_TO=www1.expample.com,192.168.1.101:3000 -e CERT_EMAIL=your@email.com neogenia/ez-gate:latest
 ```
 
 ここで、`CERT_EMAIL` に指定するのは Let'sEncrypt に登録する HTTPS証明書のメールアドレスです。
@@ -53,7 +53,7 @@ services:
 
   gate:
     container_name: gate
-    image: neogenia/EzGate
+    image: neogenia/ez-gate
     build:
       context: ../docker/
     ports:
@@ -101,4 +101,46 @@ domain('www2.example.com') {
 `domain` `cert_email` `nginx_config` 等は実は全て予め定義済みのメソッドです。
 
 なお、`cert_email` は環境変数 `CERT_EMAIL` の指定があればそちらが優先されます。
+
+## 設定ファイルのリロード
+
+設定ファイルを変更した場合、以下のようにリロードコマンドを実行することで
+リバースプロキシを停止することなく設定ファイルの内容を反映させることが出来ます。
+
+```bash
+docker exec -ti ez-gate /var/scripts/reload_config.rb
+```
+
+## 個別の証明書ファイルを指定する（デバッグ時など）
+
+EzGate は自動的に Let's Encrypt を使ってHTTPS証明書ファイルを作成しますが、
+予め用意された証明書ファイルを使って稼働させることも出来ます。
+
+特にローカルで開発環境を構築する場合は、Let's Encrypt の証明書が自動作成できませんので、
+`mkcert` などで用意した証明書を指定することでエラーを回避できます。
+
+```bash
+# 証明書格納用フォルダを作成
+mkdir certs
+
+# mkcertを使って localhost 向けの証明書ファイルを生成
+mkcert -install  # 初回のみ
+mkcert -key-file certs/key.pem -cert-file certs/cert.pem localhost
+
+# 証明書格納用フォルダをボリュームマウントし、環境変数でそれらのファイルを指定
+docker run -ti -p80:80 -p443:443 -e PROXY_TO=localhost,webapp1:3000 -e CERT_FILE=/mnt/cert.pem -e KEY_FILE=/mnt/key.pem -v `pwd`/certs:/mnt neogenia/ez-gate:latest
+```
+
+設定ファイルで指定する場合は以下のようになります。
+
+```
+domain('localhost') {
+  proxy_to 'webapp1:3000'
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}
+```
+
+このリポジトリの `example2/` ディレクトリを参照してください。
 

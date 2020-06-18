@@ -51,6 +51,22 @@ class Config
     ENV['CERT_EMAIL'] || @cert_email
   end
 
+  def cert_file=(file_path)
+    @cert_file = file_path
+  end
+
+  def cert_file
+    ENV['CERT_FILE'] || @cert_file
+  end
+
+  def key_file=(file_path)
+    @key_file = file_path
+  end
+
+  def key_file
+    ENV['KEY_FILE'] || @key_file
+  end
+
   def self.output_dir
     '/etc/nginx/sites-enabled/'
   end
@@ -69,15 +85,17 @@ class Config
     File.open(file_path || output_path, 'w') {|f| output f}
   end
 
-  def setup_letsencrypt(force=nil)
-    if force || !File.exist?("/etc/letsencrypt/live/#{domain}")
-      output_to_file
-      shell_exec 'nginx -t'
-      shell_exec 'service nginx restart'
-      sleep 2
-    
-      LetsEncrypt.setup self
-      sleep 2
+  def setup_ssl(force=nil)
+    unless cert_file
+      if force || !File.exist?("/etc/letsencrypt/live/#{domain}")
+        output_to_file
+        shell_exec 'nginx -t'
+        shell_exec 'service nginx restart'
+        sleep 2
+
+        LetsEncrypt.setup self
+        sleep 2
+      end
     end
 
     @enable_ssl = true
@@ -90,7 +108,12 @@ class Config
   def check
     _check_required :domain
     _check_array :proxy_to
-    _check_required :cert_email
+    if cert_file || key_file
+      _check_file_exists :cert_file
+      _check_file_exists :key_file
+    else
+      _check_required :cert_email
+    end
   end
 
   private
@@ -107,6 +130,13 @@ class Config
   def _check_required(var_name)
     val = "#{self.send(var_name)}".strip
     raise "Parameter '#{var_name}' is not defined!" if val == ''
+    val
+  end
+
+  def _check_file_exists(var_name)
+    val = _check_required var_name
+    raise "File not found! '#{var_name}'" unless File.exist? val
+    val
   end
 end
 
@@ -135,6 +165,14 @@ class Parser
 
   def cert_email(mail_address)
     @config.cert_email = mail_address
+  end
+
+  def cert_file(file_path)
+    @config.cert_file = file_path
+  end
+
+  def key_file(file_path)
+    @config.key_file = file_path
   end
 
   def self.parse(text)
@@ -197,7 +235,7 @@ backup_dir(Config.output_dir) do
   # setup
   configurations.each do |config|
     log("----- start setup of Let's Encrypt for #{config.domain} -----")
-    config.setup_letsencrypt ENV['FORCE_MODE']
+    config.setup_ssl ENV['FORCE_MODE']
   end
   log("----- finish all setups successfully -----")
 end

@@ -1,6 +1,6 @@
-# Ez Gate
+# EzGate
 
-Ez Gate is a docker container that aims to make it easy to set up a reverse proxy that supports HTTPS.
+EzGate is a docker container that aims to make it easy to set up a reverse proxy that supports HTTPS.
 
 [日本語版](./README.ja.md)
 
@@ -11,7 +11,7 @@ Ez Gate is a docker container that aims to make it easy to set up a reverse prox
 There's already a web app, and it's running at 192.168.1.101:3000, and If you want to assign the domain to www1.expample.com, you can use the You can start the reverse proxy as follows:
 
 ```bash
-docker run -ti -p80:80 -p443:443 -e PROXY_TO=www1.expample.com,192.168.1.101:3000 -e CERT_EMAIL=your@email.com neogenia/EzGate:latest
+docker run -ti -p80:80 -p443:443 -e PROXY_TO=www1.expample.com,192.168.1.101:3000 -e CERT_EMAIL=your@email.com neogenia/ez-gate:latest
 ```
 
 Here, `CERT_EMAIL` is the email address of the HTTPS certificate you want to register with Let'sEncrypt.
@@ -55,7 +55,7 @@ services:
 
   gate:
     container_name: gate
-    image: neogenia/EzGate
+    image: neogenia/ez-gate
     build:
       context: ../docker/
     ports:

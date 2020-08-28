@@ -6,10 +6,10 @@ EzGate は HTTPS に対応したリバースプロキシをお手軽に立てる
 
 ### 例1
 
-Webアプリが既にあり、それが 192.168.1.101:3000 で稼働していて、ドメインを www1.expample.com に割り当てたいとすると、それに対するリバースプロキシを以下のようにして起動することができます。
+Webアプリが既にあり、それが 192.168.1.101:3000 で稼働していて、ドメインを www1.example.com に割り当てたいとすると、それに対するリバースプロキシを以下のようにして起動することができます。
 
 ```bash
-docker run -ti -p80:80 -p443:443 -e PROXY_TO=www1.expample.com,192.168.1.101:3000 -e CERT_EMAIL=your@email.com neogenia/ez-gate:latest
+docker run -ti -p80:80 -p443:443 -e PROXY_TO=www1.example.com,192.168.1.101:3000 -e CERT_EMAIL=your@email.com neogenia/ez-gate:latest
 ```
 
 ここで、`CERT_EMAIL` に指定するのは Let'sEncrypt に登録する HTTPS証明書のメールアドレスです。

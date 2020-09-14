@@ -53,3 +53,4 @@ EXPOSE 80 443
 ADD resources/scripts /var/scripts
 RUN chmod 700 /var/scripts/*
 
+RUN mkdir /var/www/letsencrypt

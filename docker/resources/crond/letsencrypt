@@ -1,2 +1,2 @@
-13 4 14,29 * * root letsencrypt renew --no-self-upgrade && service nginx reload
+13 4 14,29 * * root service nginx reload
 

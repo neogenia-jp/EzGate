@@ -31,11 +31,9 @@ ADD resources/nginx/etc/nginx/nginx.conf /etc/nginx/
 ADD resources/monit/* /etc/monit/conf.d/
 
 ############################################################
-# cron settings
-ADD resources/crond/* /etc/cron.d/
-RUN chmod 0644 /etc/cron.d/*
-# take over env_vars for cron jobs
-RUN env |sed 's/^\(.*\)$/export \1/g' >>/root/.profile
+# add 'reload nginx' into setting of cron
+RUN sed -i -e "s|q renew|q renew --deploy-hook '/usr/sbin/service nginx reload'|g" \
+              /etc/cron.d/certbot
 
 ############################################################
 # clean apt-get files
@@ -53,3 +51,4 @@ EXPOSE 80 443
 ADD resources/scripts /var/scripts
 RUN chmod 700 /var/scripts/*
 
+RUN mkdir /var/www/letsencrypt

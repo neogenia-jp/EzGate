@@ -12,7 +12,8 @@ ENV LANG=C.UTF-8
 
 ############################################################
 # install nginx
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
         monit cron \
         apache2-utils \
         nginx \
@@ -20,7 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         locales tzdata \
         letsencrypt \
         ruby \
-        less vim-tiny
+        less vim-tiny \
+ && apt-get clean \
+ && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
 ############################################################
 # nginx settings
@@ -34,10 +37,6 @@ ADD resources/monit/* /etc/monit/conf.d/
 # add 'reload nginx' into setting of cron
 RUN sed -i -e "s|q renew|q renew --deploy-hook '/usr/sbin/service nginx reload'|g" \
               /etc/cron.d/certbot
-
-############################################################
-# clean apt-get files
-RUN apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
 ADD resources/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod 700 /docker-entrypoint.sh

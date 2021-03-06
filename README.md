@@ -146,3 +146,33 @@ domain('localhost') {
 ```
 
 See the `example2/` directory in this repository.
+
+## Switch the relay destination according to the access source IP address
+
+When using a reverse proxy for load balancing on multiple servers, there are times when you want to isolate a specific server for verification.
+In this case, EzGate can relay only the access from a specific PC to the isolated server.
+
+For example, to load-balance two application servers, specify the relay destination in `proxy_to` separated by commas as follows.
+```
+domain('myservice.example.com') {
+  # Load balancing with two application servers
+  proxy_to 'apserver1', 'apserver2'
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}
+```
+
+Now, if you want to detach `apserver1` for maintenance and connect to `apserver1` only when you access it from the global IP of your own network,
+specify the optional argument `from:` for `proxy_to` as follows.
+
+```
+domain('myservice.example.com') {
+  # Relay to `apserver1` only when the access source IP address is '11.22.33.44'.
+  proxy_to 'apserver1', from: '11.22.33.44'
+  # Otherwise, relay to `apserver2`.
+  proxy_to 'apserver2', from: :all    # `from: :all` can be omitted.
+}
+```
+
+You can find the sample in the `example3/` directory of this repository.

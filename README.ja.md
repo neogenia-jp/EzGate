@@ -144,3 +144,32 @@ domain('localhost') {
 
 このリポジトリの `example2/` ディレクトリを参照してください。
 
+## アクセス元IPアドレスによって中継先を切り替える
+
+複数サーバでの負荷分散のためにリバースプロキシを使用する場合、ある特定のサーバだけを切り離して検証したい場合があります。
+そういった利用シーンを想定し、EzGateではある特定のPCからアクセスした場合のみ、切り離したサーバに中継させることが出来ます。
+
+例えば、アプリケーションサーバを２台で負荷分散する場合、以下のように `proxy_to` にカンマ区切りで中継先を指定します。
+```
+domain('myservice.example.com') {
+  # アプリケーションサーバ2台で負荷分散
+  proxy_to 'apserver1', 'apserver2'
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}
+```
+
+ここで、`apserver1` をメンテナンスのために切り離し、自社のネットワークのグローバルIPからアクセスした時だけ
+`apserver1` につながるようにしたい場合は、以下のように `proxy_to` のオプション引数 `from:` を指定します。
+
+```
+domain('myservice.example.com') {
+  # アクセス元IPアドレスが '11.22.33.44' の時だけ、`apserver1` へ中継
+  proxy_to 'apserver1', from: '11.22.33.44'
+  # それ以外は `apserver2` へ中継
+  proxy_to 'apserver2', from: :all   # `from: :all` は省略可能
+}
+```
+
+このリポジトリの `example3/` ディレクトリにサンプルが入っています。

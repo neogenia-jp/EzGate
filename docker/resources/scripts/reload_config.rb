@@ -29,18 +29,67 @@ class LetsEncrypt
   end
 end
 
+def normalize_name(name)
+  name.gsub(/[\.\W]/, '_')
+end
+
+class Upstream
+  attr_reader :name, :dest, :from_ips
+
+  def initialize(domain, dest, from_ips = nil)
+    @@index ||= 0
+    @@index += 1
+    log "CONFIG: Upstream[#{@@index}] domain=#{domain} dest=#{dest} from_ips=#{from_ips}"
+    @name = "#{normalize_name domain}-#{@@index}"
+    @dest = [dest].flatten
+    if from_ips && from_ips.to_s != 'all'
+      @from_ips = [from_ips].flatten
+    end
+  end
+
+  def proxy_to; @dest; end
+
+  def check
+    _check_array :proxy_to
+    if from_ips
+      _check_array :from_ips
+      from_ips.each { |ip| _check_ip ip }
+    end
+  end
+
+  private
+
+  REGEXP_IP_ADDR = %r`^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)?$`
+  def _check_ip(ip)
+    mr = REGEXP_IP_ADDR.match ip 
+    raise "invalid ip address '#{ip}'" unless mr
+  end
+
+  def _check_array(var_name)
+    val = send var_name
+    if !val.is_a?(Array) || val.length == 0
+      raise "Array '#{var_name}' must has any elements!" 
+    end
+  end
+end
+
 class Config
   TEMPLATE_PATH = '/var/scripts/config_template.erb'
 
-  attr_accessor :domain, :proxy_to, :nginx_config
+  attr_accessor :domain, :upstreams, :nginx_config
   attr_reader :enable_ssl
 
   def initialize
     @enable_ssl = false
+    @upstreams = []
   end
 
-  def upstream_name
-    @_upstream_name ||= @domain.gsub(/[\.\W]/, '_')
+  def normalized_domain
+    normalize_name domain
+  end
+
+  def add_upstream(destinations, from=nil)
+    @upstreams << Upstream.new(normalized_domain, destinations, from)
   end
 
   def cert_email=(mail_address)
@@ -72,7 +121,7 @@ class Config
   end
 
   def output_path
-    @output_path ||= "#{self.class.output_dir}#{upstream_name}"
+    @output_path ||= "#{self.class.output_dir}#{normalized_domain}"
   end
 
   def output(io)
@@ -107,26 +156,18 @@ class Config
 
   def check
     _check_required :domain
-    _check_array :proxy_to
     if cert_file || key_file
       _check_file_exists :cert_file
       _check_file_exists :key_file
     else
       _check_required :cert_email
     end
+
+    upstreams.each { |u| u.check }
+    _check_and_reorder_upstreams(upstreams)
   end
 
   private
-  def _check_array(var_name)
-    if var_name.is_a?(Array)
-      if var_name.length == 0
-        raise "Array '#{var_name}' must has any elements!" 
-      end
-    else
-      _check_required(var_name)
-    end
-  end
-
   def _check_required(var_name)
     val = "#{self.send(var_name)}".strip
     raise "Parameter '#{var_name}' is not defined!" if val == ''
@@ -137,6 +178,15 @@ class Config
     val = _check_required var_name
     raise "File not found! '#{var_name}'" unless File.exist? val
     val
+  end
+
+  def _check_and_reorder_upstreams(upstreams)
+    defaults = upstreams.reject(&:from_ips)
+    raise "One default destination is required." if defaults.empty?
+    raise "Multiple default destinations are defined: #{defaults.map{|u| "'#{u.dest}'"}.join(', ')}" if defaults.count > 1
+    # reorder
+    upstreams.delete defaults.first
+    upstreams << defaults.first
   end
 end
 
@@ -155,8 +205,8 @@ class Parser
     yield if block_given?
   end
 
-  def proxy_to(*destinations)
-    @config.proxy_to = [destinations].flatten
+  def proxy_to(*destinations, from: :all)
+    @config.add_upstream destinations, from
   end
 
   def nginx_config(config_text)
@@ -196,7 +246,7 @@ def get_config
     domain, *list = proxy_to.split(',')
     c = Config.new
     c.domain = domain
-    c.proxy_to = list
+    c.add_upstream list
     return [c]
   end
 end

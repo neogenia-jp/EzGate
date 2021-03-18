@@ -1,10 +1,15 @@
 <% if config.enable_ssl %>
-upstream <%= config.upstream_name %> {
-  <% config.proxy_to.each do |p| %>
-    server <%= p %>;
-  <% end %>
-}
 
+# --- upstreams ---
+<% config.upstreams.each do |u| %>
+  upstream <%= u.name %> {
+    <% u.dest.each do |p| %>
+      server <%= p %>;
+    <% end %>
+  }
+<% end %>
+
+# --- server define for normal HTTP ---
 server {
     server_name  <%= config.domain %>;
     listen       80;
@@ -18,6 +23,7 @@ server {
     }
 }
 
+# --- server define for SSL ---
 server {
     server_name  <%= config.domain %>;
     listen       443 ssl http2;
@@ -31,16 +37,26 @@ server {
 
     <%= config.nginx_config %>
 
+    # --- remote ip filters ---
+    set $target_upstream "<%= config.upstreams.last.name %>";
+  <% config.upstreams.select(&:from_ips).each do |u| %>
+   <% u.from_ips.each do |ip| %>
+    if ($remote_addr = '<%=ip%>') {
+      set $target_upstream '<%= u.name %>';
+    }
+   <% end %>
+  <% end %>
+
     location / {
-        error_log /var/log/nginx/error_<%= config.upstream_name %>.log;
-        access_log /var/log/nginx/access_<%= config.upstream_name %>.log main;
+        error_log /var/log/nginx/error_<%= config.normalized_domain %>.log;
+        access_log /var/log/nginx/access_<%= config.normalized_domain %>.log main;
 
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $http_host;
         proxy_set_header X-Request-ID $request_id;
-        proxy_pass http://<%= config.upstream_name %>;
+        proxy_pass http://$target_upstream;
     }
 }
 <% else %>

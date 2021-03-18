@@ -1,0 +1,16 @@
+SERVER_IP = '192.168.11.22'
+
+domain("#{SERVER_IP}.xip.io") {
+  proxy_to 'webapp1'
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}
+
+domain("#{SERVER_IP}.nip.io") {
+  proxy_to 'webapp2'
+  proxy_to 'webapp1', from: %w/192.168.11.5 192.168.11.6/
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}

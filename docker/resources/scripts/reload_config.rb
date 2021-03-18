@@ -182,11 +182,15 @@ class Config
 
   def _check_and_reorder_upstreams(upstreams)
     defaults = upstreams.reject(&:from_ips)
-    raise "One default destination is required." if defaults.empty?
+    if defaults.empty?
+      warn "*** WARN: No relay destinations defined for '#{domain}'."
+      return 0
+    end
     raise "Multiple default destinations are defined: #{defaults.map{|u| "'#{u.dest}'"}.join(', ')}" if defaults.count > 1
     # reorder
     upstreams.delete defaults.first
     upstreams << defaults.first
+    true
   end
 end
 

@@ -1,0 +1,22 @@
+DOMAIN = 'www.192.168.11.22.xip.io'
+
+# with `www.` domain
+domain(DOMAIN) {
+  proxy_to 'webapp1'
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}
+
+# without `www.` domain
+domain(DOMAIN.gsub /^www\./, '') {
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+
+  # redirect to `www.` domain
+  nginx_config <<~CONFIG
+    location / {
+      return 301   https://#{DOMAIN}$request_uri;
+    }
+  CONFIG
+}

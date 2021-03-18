@@ -37,6 +37,7 @@ server {
 
     <%= config.nginx_config %>
 
+ <% if !config.upstreams.empty? %>
     # --- remote ip filters ---
     set $target_upstream "<%= config.upstreams.last.name %>";
   <% config.upstreams.select(&:from_ips).each do |u| %>
@@ -58,6 +59,7 @@ server {
         proxy_set_header X-Request-ID $request_id;
         proxy_pass http://$target_upstream;
     }
+ <% end %>
 }
 <% else %>
 server {

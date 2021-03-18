@@ -39,7 +39,6 @@ class Upstream
   def initialize(domain, dest, from_ips = nil)
     @@index ||= 0
     @@index += 1
-    log "CONFIG: Upstream[#{@@index}] domain=#{domain} dest=#{dest} from_ips=#{from_ips}"
     @name = "#{normalize_name domain}-#{@@index}"
     @dest = [dest].flatten
     if from_ips && from_ips.to_s != 'all'
@@ -76,12 +75,14 @@ end
 class Config
   TEMPLATE_PATH = '/var/scripts/config_template.erb'
 
-  attr_accessor :domain, :upstreams, :nginx_config
+  attr_accessor :domain, :locations, :current_location
   attr_reader :enable_ssl
 
   def initialize
     @enable_ssl = false
-    @upstreams = []
+    @curent_location = nil
+    @locations = { }
+    @nginx_configs = { }
   end
 
   def normalized_domain
@@ -89,7 +90,21 @@ class Config
   end
 
   def add_upstream(destinations, from=nil)
-    @upstreams << Upstream.new(normalized_domain, destinations, from)
+    (@locations[@current_location||'/'] ||= []) << Upstream.new(normalized_domain, destinations, from)
+    log "CONFIG: Added Upstream domain='#{normalized_domain}' dest='#{destinations}' from_ips='#{from}' in '#{@current_location}'"
+  end
+
+  def all_upstreams
+    @locations.values.flatten
+  end
+
+  def add_nginx_config(config_text)
+    log "CONFIG: Added nginx_config in '#{@current_location}'"
+    (@nginx_configs[@current_location] ||= []) << config_text
+  end
+
+  def get_nginx_config(location = nil)
+    @nginx_configs[location]&.flatten&.join("\n")
   end
 
   def cert_email=(mail_address)
@@ -163,8 +178,13 @@ class Config
       _check_required :cert_email
     end
 
-    upstreams.each { |u| u.check }
-    _check_and_reorder_upstreams(upstreams)
+    all_upstreams.each { |u| u.check }
+    locations.each do |loc, upstreams|
+      _check_and_reorder_upstreams(upstreams, loc)
+    end
+    # The key is nil to last
+    val = locations.delete('/')
+    locations['/'] = val if val
   end
 
   private
@@ -180,7 +200,7 @@ class Config
     val
   end
 
-  def _check_and_reorder_upstreams(upstreams)
+  def _check_and_reorder_upstreams(upstreams, loc)
     defaults = upstreams.reject(&:from_ips)
     if defaults.empty?
       warn "*** WARN: No relay destinations defined for '#{domain}'."
@@ -206,15 +226,25 @@ class Parser
   def domain(name)
     @config = (@hash[name] ||= Config.new)
     @config.domain = name
+    log "PARSER: detect domain(#{name})"
     yield if block_given?
   end
 
+  def location(l)
+    old = @config.current_location
+    log "PARSER: Change location to '#{l}' from '#{old}'"
+    @config.current_location = l
+    yield if block_given?
+    @config.current_location = old
+  end
+
   def proxy_to(*destinations, from: :all)
+    log "PARSER: detect proxy_to(#{destinations}, from: #{from})"
     @config.add_upstream destinations, from
   end
 
   def nginx_config(config_text)
-    @config.nginx_config = config_text
+    @config.add_nginx_config config_text
   end
 
   def cert_email(mail_address)

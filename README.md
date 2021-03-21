@@ -23,7 +23,7 @@ You can also assign multiple domains to multiple web apps.
 For example, if web app 1 is running on host `nginx1` and web app 2 is running on host `apache1` `apache2` as a load balancer,
  you can customize it in more detail by writing a configuration file like the following:
 
-```
+```ruby:config
 domain('www1.example.com') {
   proxy_to 'nginx1'
 }
@@ -37,7 +37,7 @@ Then, save the configuration file as `mnt/config` and mount it in the container,
 If you use `docker compose`, the `yml` will look like this: 
  (Actually, you can put it in the `example/` directory of this repository.)
 
-```yml
+```yml:docker-compose:yml
 version: '2'
 
 services:
@@ -77,7 +77,7 @@ services:
 
 basic syntax:
 
-```
+```ruby:config
 domain('www.example.com') {
   proxy_to "webapp1", "webapp2", ...
 }
@@ -87,7 +87,7 @@ It is possible to write multiple `domain()` entries.
 
 In addition, you can specify `cert_email` `nginx_config` options as follows:
 
-```
+```ruby:config
 domain('www2.example.com') {
   proxy_to "apache1", "apache2"
   cert_email 'your@email.com'
@@ -136,7 +136,7 @@ docker run -ti -p80:80 -p443:443 -e PROXY_TO= localhost,webapp1:3000 -e CERT_FIL
 
 If you specify it in the configuration file, it looks like the following:
 
-```
+```ruby:config
 domain('localhost') {
   proxy_to 'webapp1:3000'
 
@@ -155,7 +155,8 @@ When using a reverse proxy for load balancing on multiple servers, there are tim
 In this case, EzGate can relay only the access from a specific PC to the isolated server.
 
 For example, to load-balance two application servers, specify the relay destination in `proxy_to` separated by commas as follows.
-```
+
+```ruby:config
 domain('myservice.example.com') {
   # Load balancing with two application servers
   proxy_to 'apserver1', 'apserver2'
@@ -168,7 +169,7 @@ domain('myservice.example.com') {
 Now, if you want to detach `apserver1` for maintenance and connect to `apserver1` only when you access it from the global IP of your own network,
 specify the optional argument `from:` for `proxy_to` as follows.
 
-```
+```ruby:config
 domain('myservice.example.com') {
   # Relay to `apserver1` only when the access source IP address is '11.22.33.44'.
   proxy_to 'apserver1', from: '11.22.33.44'
@@ -187,7 +188,7 @@ Common uses are domain migration, or redirecting to a domain with www when acces
 For example, to redirect to www.example.com when accessed from example.com,
  the configuration is as follows
 
-```
+```ruby:config
 DOMAIN = 'www.example.com'
 
 # with `www.` domain
@@ -224,7 +225,7 @@ It is possible to switch the forwarding destination only when a specific path is
 For example, you can easily configure the `webapp1` server to relay normal accesses,
 and the `webapp2` server to relay only when `/map_api` is accessed.
 
-```
+```ruby:config
 SERVER_IP = '192.168.11.22'
 
 domain("#{SERVER_IP}.nip.io") {

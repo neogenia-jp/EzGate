@@ -21,7 +21,7 @@ docker run -ti -p80:80 -p443:443 -e PROXY_TO=www1.example.com,192.168.1.101:3000
 例えば、Webアプリ1 が ホスト`nginx1` で稼働していて、更に Webアプリ2 が ホスト`apache1` `apache2` で負荷分散として複数稼働している場合、
 以下のような設定ファイルを書くことでより詳細にカスタマイズできます。
 
-```
+```ruby:config
 domain('www1.example.com') {
   proxy_to 'nginx1'
 }
@@ -35,7 +35,7 @@ domain('www2.example.com') {
 `docker compose` を使用する場合は以下のような `yml` になります。
 （実際にこのリポジトリの `example/` ディレクトリにこの構成が入っています）
 
-```yml
+```yml:docker-compose.yml
 version: '2'
 
 services:
@@ -75,7 +75,7 @@ services:
 
 基本構文は以下です。
 
-```
+```ruby:config
 domain('www.example.com') {
   proxy_to "webapp1", "webapp2", ...
 }
@@ -85,7 +85,7 @@ domain('www.example.com') {
 
 さらに、以下のように `cert_email` `nginx_config` のオプション指定が可能です。
 
-```
+```ruby:config
 domain('www2.example.com') {
   proxy_to "apache1", "apache2"
   cert_email 'your@email.com'
@@ -133,7 +133,7 @@ docker run -ti -p80:80 -p443:443 -e PROXY_TO=localhost,webapp1:3000 -e CERT_FILE
 
 設定ファイルで指定する場合は以下のようになります。
 
-```
+```ruby:config
 domain('localhost') {
   proxy_to 'webapp1:3000'
 
@@ -152,7 +152,8 @@ domain('localhost') {
 そういった利用シーンを想定し、EzGateではある特定のPCからアクセスした場合のみ、切り離したサーバに中継させることが出来ます。
 
 例えば、アプリケーションサーバを２台で負荷分散する場合、以下のように `proxy_to` にカンマ区切りで中継先を指定します。
-```
+
+```ruby:config
 domain('myservice.example.com') {
   # アプリケーションサーバ2台で負荷分散
   proxy_to 'apserver1', 'apserver2'
@@ -165,7 +166,7 @@ domain('myservice.example.com') {
 ここで、`apserver1` をメンテナンスのために切り離し、自社のネットワークのグローバルIPからアクセスした時だけ
 `apserver1` につながるようにしたい場合は、以下のように `proxy_to` のオプション引数 `from:` を指定します。
 
-```
+```ruby:config
 domain('myservice.example.com') {
   # アクセス元IPアドレスが '11.22.33.44' の時だけ、`apserver1` へ中継
   proxy_to 'apserver1', from: '11.22.33.44'
@@ -184,7 +185,7 @@ domain('myservice.example.com') {
 
 例えば、`example.com` でアクセスされた際に `www.example.com` にリダイレクトさせるための設定は以下のようになります。
 
-```
+```ruby:config
 DOMAIN = 'www.example.com'
 
 # `www.` 付きのドメインでアクセスされた時
@@ -221,7 +222,7 @@ domain(DOMAIN.gsub /^www\./, '') {
 例えば、 通常のアクセスは `webapp1` サーバに中継し、 `/map_api` にアクセスされた時だけ
 `webapp2` サーバに中継する、といった設定が簡単に出来ます。
 
-```
+```ruby:config
 SERVER_IP = '192.168.11.22'
 
 domain("#{SERVER_IP}.nip.io") {

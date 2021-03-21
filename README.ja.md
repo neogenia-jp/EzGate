@@ -21,7 +21,7 @@ docker run -ti -p80:80 -p443:443 -e PROXY_TO=www1.example.com,192.168.1.101:3000
 例えば、Webアプリ1 が ホスト`nginx1` で稼働していて、更に Webアプリ2 が ホスト`apache1` `apache2` で負荷分散として複数稼働している場合、
 以下のような設定ファイルを書くことでより詳細にカスタマイズできます。
 
-```
+```ruby:config
 domain('www1.example.com') {
   proxy_to 'nginx1'
 }
@@ -35,7 +35,7 @@ domain('www2.example.com') {
 `docker compose` を使用する場合は以下のような `yml` になります。
 （実際にこのリポジトリの `example/` ディレクトリにこの構成が入っています）
 
-```yml
+```yml:docker-compose.yml
 version: '2'
 
 services:
@@ -75,7 +75,7 @@ services:
 
 基本構文は以下です。
 
-```
+```ruby:config
 domain('www.example.com') {
   proxy_to "webapp1", "webapp2", ...
 }
@@ -85,7 +85,7 @@ domain('www.example.com') {
 
 さらに、以下のように `cert_email` `nginx_config` のオプション指定が可能です。
 
-```
+```ruby:config
 domain('www2.example.com') {
   proxy_to "apache1", "apache2"
   cert_email 'your@email.com'
@@ -133,7 +133,7 @@ docker run -ti -p80:80 -p443:443 -e PROXY_TO=localhost,webapp1:3000 -e CERT_FILE
 
 設定ファイルで指定する場合は以下のようになります。
 
-```
+```ruby:config
 domain('localhost') {
   proxy_to 'webapp1:3000'
 
@@ -144,13 +144,16 @@ domain('localhost') {
 
 このリポジトリの `example2/` ディレクトリを参照してください。
 
-## アクセス元IPアドレスによって中継先を切り替える
+## さらに高度な設定
+
+### アクセス元IPアドレスによって中継先を切り替える
 
 複数サーバでの負荷分散のためにリバースプロキシを使用する場合、ある特定のサーバだけを切り離して検証したい場合があります。
 そういった利用シーンを想定し、EzGateではある特定のPCからアクセスした場合のみ、切り離したサーバに中継させることが出来ます。
 
 例えば、アプリケーションサーバを２台で負荷分散する場合、以下のように `proxy_to` にカンマ区切りで中継先を指定します。
-```
+
+```ruby:config
 domain('myservice.example.com') {
   # アプリケーションサーバ2台で負荷分散
   proxy_to 'apserver1', 'apserver2'
@@ -163,7 +166,7 @@ domain('myservice.example.com') {
 ここで、`apserver1` をメンテナンスのために切り離し、自社のネットワークのグローバルIPからアクセスした時だけ
 `apserver1` につながるようにしたい場合は、以下のように `proxy_to` のオプション引数 `from:` を指定します。
 
-```
+```ruby:config
 domain('myservice.example.com') {
   # アクセス元IPアドレスが '11.22.33.44' の時だけ、`apserver1` へ中継
   proxy_to 'apserver1', from: '11.22.33.44'
@@ -173,3 +176,79 @@ domain('myservice.example.com') {
 ```
 
 このリポジトリの `example3/` ディレクトリにサンプルが入っています。
+
+### 別のドメインへのリダイレクト
+
+ある特定のドメインでアクセスされた時に、別のドメインにリダイレクトさせることも簡単にできます。
+よくあるのは、ドメインの移行や、www 無しのドメインでアクセスされた時に www 有りのドメインにリダイレクトさせる、
+といった使い方です。
+
+例えば、`example.com` でアクセスされた際に `www.example.com` にリダイレクトさせるための設定は以下のようになります。
+
+```ruby:config
+DOMAIN = 'www.example.com'
+
+# `www.` 付きのドメインでアクセスされた時
+domain(DOMAIN) {
+  proxy_to 'webapp1'   # `webapp1` に中継する
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}
+
+# `www.` 無しのドメインでアクセスされた時
+domain(DOMAIN.gsub /^www\./, '') {
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+
+  # `www.` 付きのドメインにリダイレクトする
+  nginx_config <<~CONFIG
+    location / {
+      return 301   https://#{DOMAIN}$request_uri;
+    }
+  CONFIG
+}
+```
+
+上記のように、 `domain() { }` 内に `proxy_to` を指定せず、
+代わりに `nginx_config` を使ってリダイレクトの設定を行うだけです。
+
+このリポジトリの `example4/` ディレクトリにサンプルが入っています。
+
+### ロケーションごとに中継先を切り替える
+
+ある特定のパスにアクセスされた時だけ、中継先を切り替えることが出来ます。
+
+例えば、 通常のアクセスは `webapp1` サーバに中継し、 `/map_api` にアクセスされた時だけ
+`webapp2` サーバに中継する、といった設定が簡単に出来ます。
+
+```ruby:config
+SERVER_IP = '192.168.11.22'
+
+domain("#{SERVER_IP}.nip.io") {
+  # デフォルトの中継先
+  proxy_to 'webapp1'
+
+  # 特定のパスにアクセスされた時だけ、別サーバに中継する
+  location('/map_api') {
+    proxy_to 'webapp2'
+  }
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}
+```
+
+`location() { }` で囲って `proxy_to` を指定することにより、特定のパスだけに絞って中継先を上書きすることが出来ます。
+また、`location() { }` の中では、`nginx_config` を指定することも出来ます。
+`location` で指定可能なロケーションは、 [`nginx` の `location` ディレクティブ](http://nginx.org/en/docs/http/ngx_http_core_module.html#location)
+と同じです。
+
+例えば `location('~* \.(gif|jpg|jpeg)$') { }` と書いた場合、`nginx` の設定ファイルには以下のように展開されます。
+
+```nginx.conf:nginx.conf
+location ~* \.(gif|jpg|jpeg)$ {
+}
+```
+
+このリポジトリの `example5/` ディレクトリにサンプルが入っています。

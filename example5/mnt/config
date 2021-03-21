@@ -1,0 +1,14 @@
+SERVER_IP = '192.168.11.22'
+
+domain("#{SERVER_IP}.nip.io") {
+  # default server.
+  proxy_to 'webapp1'
+
+  # send to a different server for a specific location.
+  location('/map_api') {
+    proxy_to 'webapp2'
+  }
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}

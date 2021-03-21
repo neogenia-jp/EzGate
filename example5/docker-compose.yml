@@ -1,0 +1,32 @@
+version: '2'
+
+volumes:
+  cert_dir:
+    driver: local
+
+services:
+  webapp1:
+    container_name: webapp1
+    image: nginxdemos/hello
+
+  webapp2:
+    container_name: webapp2
+    image: wordpress:5.6.0-apache
+
+  local_gate:
+    container_name: local_gate
+    image: neogenia/ez-gate:20210318
+    build:
+      context: ../docker/
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./mnt:/mnt/
+      - cert_dir:/etc/letsencrypt
+    environment:
+      CONFIG_PATH: /mnt/config
+      DEBUG: 1
+    depends_on:
+      - webapp1
+      - webapp2

@@ -1,7 +1,7 @@
 <% if config.enable_ssl %>
 
 # --- upstreams ---
-<% config.upstreams.each do |u| %>
+<% config.all_upstreams.each do |u| %>
   upstream <%= u.name %> {
     <% u.dest.each do |p| %>
       server <%= p %>;
@@ -35,19 +35,24 @@ server {
     ssl_certificate_key  /etc/letsencrypt/live/<%= config.domain %>/privkey.pem;
   <% end %>
 
-    <%= config.nginx_config %>
+    <%= config.get_nginx_config %>
 
-    # --- remote ip filters ---
-    set $target_upstream "<%= config.upstreams.last.name %>";
-  <% config.upstreams.select(&:from_ips).each do |u| %>
-   <% u.from_ips.each do |ip| %>
-    if ($remote_addr = '<%=ip%>') {
-      set $target_upstream '<%= u.name %>';
-    }
-   <% end %>
-  <% end %>
+ <% config.locations.each do |loc, upstreams| %>
+    <% loc ||= '/' %>
+    location <%= loc %> {
+        <%= config.get_nginx_config loc %>
 
-    location / {
+    <% if !upstreams.empty? %>
+        # --- remote ip filters ---
+        set $target_upstream "<%= upstreams.last.name %>";
+     <% upstreams.select(&:from_ips).each do |u| %>
+      <% u.from_ips.each do |ip| %>
+        if ($remote_addr = '<%=ip%>') {
+          set $target_upstream '<%= u.name %>';
+        }
+      <% end %>
+     <% end %>
+
         error_log /var/log/nginx/error_<%= config.normalized_domain %>.log;
         access_log /var/log/nginx/access_<%= config.normalized_domain %>.log main;
 
@@ -57,7 +62,9 @@ server {
         proxy_set_header Host $http_host;
         proxy_set_header X-Request-ID $request_id;
         proxy_pass http://$target_upstream;
+    <% end %>
     }
+ <% end %>
 }
 <% else %>
 server {

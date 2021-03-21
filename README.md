@@ -147,7 +147,9 @@ domain('localhost') {
 
 See the `example2/` directory in this repository.
 
-## Switch the relay destination according to the access source IP address
+## More advanced settings
+
+### Switch the relay destination according to the access source IP address
 
 When using a reverse proxy for load balancing on multiple servers, there are times when you want to isolate a specific server for verification.
 In this case, EzGate can relay only the access from a specific PC to the isolated server.
@@ -176,3 +178,79 @@ domain('myservice.example.com') {
 ```
 
 You can find the sample in the `example3/` directory of this repository.
+
+### Redirecting to another domain
+
+It is also easy to redirect visitors to a different domain when they access the site from a particular domain.
+Common uses are domain migration, or redirecting to a domain with www when accessed from a domain without www.
+
+For example, to redirect to www.example.com when accessed from example.com,
+ the configuration is as follows
+
+```
+DOMAIN = 'www.example.com'
+
+# with `www.` domain
+domain(DOMAIN) {
+  proxy_to 'webapp1'
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}
+
+# without `www.` domain
+domain(DOMAIN.gsub /^www\./, '') {
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+
+  # redirect to `www.` domain
+  nginx_config <<~CONFIG
+    location / {
+      return 301   https://#{DOMAIN}$request_uri;
+    }
+  CONFIG
+}
+```
+
+As shown above, we do not specify `proxy_to` in `domain() { }`,
+instead we just use `nginx_config` to configure the redirection.
+
+You can find the example in the `example4/` directory of this repository.
+
+### Switching the relay destination for each location
+
+It is possible to switch the forwarding destination only when a specific path is accessed.
+
+For example, you can easily configure the `webapp1` server to relay normal accesses,
+and the `webapp2` server to relay only when `/map_api` is accessed.
+
+```
+SERVER_IP = '192.168.11.22'
+
+domain("#{SERVER_IP}.nip.io") {
+  # default server.
+  proxy_to 'webapp1'
+
+  # send to a different server for a specific location.
+  location('/map_api') {
+    proxy_to 'webapp2'
+  }
+
+  cert_file '/mnt/cert.pem'
+  key_file '/mnt/key.pem'
+}
+```
+
+By enclosing `location() { }` and specifying `proxy_to`,
+you can override the relay destination by focusing on a specific path.
+You can also specify `nginx_config` in `location() { }`.
+The locations that can be specified with `location` are the same as in the [`nginx`'s `location` directive](http://nginx.org/en/docs/http/ngx_http_core_module.html#location).
+
+For example, if you write `location('~* \. (gif|jpg|jpeg)$') { }`, the following will be expanded in the `nginx` configuration file.
+
+```nginx.conf:nginx.conf
+location ~* \.(gif|jpg|jpeg)$ {
+}
+```
+
+You can find the example in the `example5/` directory of this repository.

@@ -113,6 +113,15 @@ to change the You can reflect the contents of the configuration file without sto
 docker exec -ti ez-gate /var/scripts/reload_ config.rb
 ```
 
+## Manual certificate renewal
+
+EzGate automatically renews the HTTPS certificate every 12 hours.
+To do this manually, do the following:
+
+```bash
+docker exec -ti ez-gate certbot renew --deploy-hook '/usr/sbin/service nginx reload'
+````
+
 ## Specify a separate certificate file (e.g. for debugging)
 
 EzGate automatically uses Let's Encrypt to create an HTTPS certificate file,

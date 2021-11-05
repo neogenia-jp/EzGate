@@ -111,6 +111,15 @@ domain('www2.example.com') {
 docker exec -ti ez-gate /var/scripts/reload_config.rb
 ```
 
+## 証明書の手動更新
+
+EzGate では12時間ごとに自動的にHTTPS証明書の更新が行われます。
+これを手動で実行するには、以下のようにします。
+
+```bash
+docker exec -ti ez-gate certbot renew --deploy-hook '/usr/sbin/service nginx reload'
+```
+
 ## 個別の証明書ファイルを指定する（デバッグ時など）
 
 EzGate は自動的に Let's Encrypt を使ってHTTPS証明書ファイルを作成しますが、

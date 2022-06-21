@@ -219,6 +219,9 @@ domain(DOMAIN.gsub /^www\./, '') {
       return 301   https://#{DOMAIN}$request_uri;
     }
   CONFIG
+
+  # or you can use the 'redirect_to' syntax
+  redirect_to DOMAIN
 }
 ```
 

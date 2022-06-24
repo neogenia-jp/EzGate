@@ -72,6 +72,24 @@ class Upstream
   end
 end
 
+class Redirect
+  attr_reader :dest, :status
+
+  def initialize(dest, status = 301)
+    dest = "https://#{dest}" unless dest.start_with? 'http'
+    dest = dest.chop if dest.end_with? '/'
+    @dest = dest
+    @status = status
+  end
+
+  def check
+  end
+
+  def to_s
+    "return #{@status} #{@dest}$request_uri;"
+  end
+end
+
 class Config
   TEMPLATE_PATH = '/var/scripts/config_template.erb'
 
@@ -90,12 +108,25 @@ class Config
   end
 
   def add_upstream(destinations, from=nil)
-    (@locations[@current_location||'/'] ||= []) << Upstream.new(normalized_domain, destinations, from)
-    log "CONFIG: Added Upstream domain='#{normalized_domain}' dest='#{destinations}' from_ips='#{from}' in '#{@current_location}'"
+    l = @current_location || '/'
+    (@locations[l] ||= []) << Upstream.new(normalized_domain, destinations, from)
+    log "CONFIG: Added Upstream domain='#{normalized_domain}' dest='#{destinations}' from_ips='#{from}' in '#{l}'"
   end
 
   def all_upstreams
     @locations.values.flatten
+  end
+
+  def add_redirect(destination, status=301)
+    l = @current_location || '/'
+    @locations[l] ||= []  # locations も作っておく必要あり
+    (@nginx_configs[l] ||= []) << Redirect.new(destination, status)
+    log "CONFIG: Added Redirect domain='#{normalized_domain}' dest='#{destination}' status=#{status} in '#{l}'"
+  end
+
+  def all_redirect(location = nil)
+    a = @nginx_configs[location]
+    a&.select{|x| x.is_a? Redirect}
   end
 
   def add_nginx_config(config_text)
@@ -179,8 +210,17 @@ class Config
     end
 
     all_upstreams.each { |u| u.check }
+
     locations.each do |loc, upstreams|
-      _check_and_reorder_upstreams(upstreams, loc)
+      a = all_redirect(loc) || []
+      if a.length >= 2
+        raise "Multiple 'redirect_to' statements are not supported (in '#{loc}' of '#{domain}')."
+      end
+      if _check_and_reorder_upstreams(upstreams, loc) == 0
+        warn "*** WARN: No relay destinations defined for '#{domain}'." if a.length == 0
+      else
+        raise "'proxy_to' and 'redirect_to' cannot be specified at the same time. (in '#{loc}' of '#{domain}')." if a.length >= 1
+      end
     end
     # The key is nil to last
     val = locations.delete('/')
@@ -203,7 +243,6 @@ class Config
   def _check_and_reorder_upstreams(upstreams, loc)
     defaults = upstreams.reject(&:from_ips)
     if defaults.empty?
-      warn "*** WARN: No relay destinations defined for '#{domain}'."
       return 0
     end
     raise "Multiple default destinations are defined: #{defaults.map{|u| "'#{u.dest}'"}.join(', ')}" if defaults.count > 1
@@ -241,6 +280,11 @@ class Parser
   def proxy_to(*destinations, from: :all)
     log "PARSER: detect proxy_to(#{destinations}, from: #{from})"
     @config.add_upstream destinations, from
+  end
+
+  def redirect_to(destination, status: 301)
+    log "PARSER: detect redirect_to(#{destination}, status: #{status})"
+    @config.add_redirect destination, status
   end
 
   def nginx_config(config_text)

@@ -216,6 +216,9 @@ domain(DOMAIN.gsub /^www\./, '') {
       return 301   https://#{DOMAIN}$request_uri;
     }
   CONFIG
+
+  # または、redirect_to 構文を使用できます
+  redirect_to DOMAIN
 }
 ```
 

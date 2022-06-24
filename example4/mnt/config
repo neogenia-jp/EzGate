@@ -1,4 +1,4 @@
-DOMAIN = 'www.192.168.11.22.xip.io'
+DOMAIN = 'www.192.168.59.115.nip.io'  # TODO: change to your IP address
 
 # with `www.` domain
 domain(DOMAIN) {
@@ -14,9 +14,5 @@ domain(DOMAIN.gsub /^www\./, '') {
   key_file '/mnt/key.pem'
 
   # redirect to `www.` domain
-  nginx_config <<~CONFIG
-    location / {
-      return 301   https://#{DOMAIN}$request_uri;
-    }
-  CONFIG
+  redirect_to DOMAIN
 }

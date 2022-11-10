@@ -20,6 +20,7 @@ RUN apt-get update \
         openssl \
         locales tzdata \
         letsencrypt \
+        logrotate \
         ruby \
         less vim-tiny \
  && apt-get clean \

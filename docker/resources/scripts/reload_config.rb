@@ -92,8 +92,9 @@ end
 
 class Config
   TEMPLATE_PATH = '/var/scripts/config_template.erb'
+  LOGROTATE_TEMPLATE_PATH = '/var/scripts/logrotate_template.erb'
 
-  attr_accessor :domain, :locations, :current_location
+  attr_accessor :domain, :locations, :current_location, :logrotate
   attr_reader :enable_ssl
 
   def initialize
@@ -170,6 +171,7 @@ class Config
     @output_path ||= "#{self.class.output_dir}#{normalized_domain}"
   end
 
+  # TODO: ConfigWriter として別クラスに切り出し、ポリモーフィズムでlogrotateと棲み分け
   def output(io)
     erb = ERB.new(File.read TEMPLATE_PATH)
     result = erb.result_with_hash({config: self})
@@ -178,6 +180,16 @@ class Config
 
   def output_to_file(file_path = nil)
     File.open(file_path || output_path, 'w') {|f| output f}
+  end
+
+  def output_logrotate(io)
+    erb = ERB.new(File.read LOGROTATE_TEMPLATE_PATH)
+    result = erb.result_with_hash({config: self})
+    io.write(result)
+  end
+
+  def output_logrotate_to_file(file_path = nil)
+    File.open(file_path || "/etc/logrotate.d/nginx_#{normalized_domain}", 'w') {|f| output_logrotate f}
   end
 
   def setup_ssl(force=nil)
@@ -198,6 +210,8 @@ class Config
     shell_exec 'nginx -t'
     shell_exec 'service nginx reload'
     sleep 2
+
+    output_logrotate_to_file unless %w/false 0 off no/.include? @logrotate.to_s.downcase
   end
 
   def check
@@ -301,6 +315,10 @@ class Parser
 
   def key_file(file_path)
     @config.key_file = file_path
+  end
+
+  def logrotate(val)
+    @config.logrotate = val
   end
 
   def self.parse(text)

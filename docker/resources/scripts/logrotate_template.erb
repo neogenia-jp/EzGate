@@ -1,0 +1,13 @@
+"/var/log/nginx/error_<%= config.normalized_domain %>.log" "/var/log/nginx/access_<%= config.normalized_domain %>.log" {
+    daily
+    rotate <%= config.logrotate || 60 %>
+    missingok
+    notifempty
+    sharedscripts
+    postrotate
+        /usr/bin/nginx -s reopen >/dev/null 2>&1 || true
+    endscript
+    compress
+    delaycompress
+}
+

@@ -20,6 +20,7 @@ RUN apt-get update \
         openssl \
         locales tzdata \
         letsencrypt \
+        logrotate \
         ruby \
         less vim-tiny \
  && apt-get clean \
@@ -37,6 +38,14 @@ ADD resources/monit/* /etc/monit/conf.d/
 # add 'reload nginx' into setting of cron
 RUN sed -i -e "s|q renew|q renew --deploy-hook '/usr/sbin/service nginx reload'|g" \
               /etc/cron.d/certbot
+
+############################################################
+# logrotate settings
+# https://ito-u-oti.com/docker-nginx-logrotate/
+RUN rm /etc/cron.daily/dpkg \
+       /etc/cron.daily/apt-compat
+RUN sed -i -e "s|^/var/log/nginx/\*.log|/var/log/nginx/access.log /var/log/nginx/error.log|" \
+              /etc/logrotate.d/nginx
 
 ADD resources/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod 700 /docker-entrypoint.sh

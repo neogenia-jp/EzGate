@@ -264,3 +264,47 @@ location ~* \.(gif|jpg|jpeg)$ {
 ```
 
 このリポジトリの `example5/` ディレクトリにサンプルが入っています。
+
+### ログローテーション
+
+nginx のログローテーションをカスタマイズ出来ます。
+デフォルトは1日ごとにファイルを切り替え、過去60日分が保存されます。
+
+```ruby:config
+SERVER_IP = '192.168.11.22'
+
+domain("#{SERVER_IP}.nip.io") {
+  proxy_to :webapp1
+
+  # ログファイルの保存日数を指定
+  logrotate 7     # 過去 7日分を保存
+  logrotate 90    # 過去90日分を保存
+  logrotate false # ログローテーションしない
+}
+```
+
+ログファイルを永続化するには、コンテナ内の `/var/log/nginx/` に対してホスト側のディレクトリをマウントする方法があります。
+タイムゾーンを変更するには、`TZ` 環境変数を指定してください。
+
+```yml:docker-compose.yml
+services:
+  nginx1:
+    container_name: nginx1
+    image: nginxdemos/hello
+
+  gate:
+    container_name: gate
+    image: neogenia/ez-gate:20221115
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./mnt:/mnt/
+      - ./logs:/var/log/nginx/   # ホスト側のディレクトリをマウント
+    environment:
+      TZ: Asia/Tokyo   # ログに記録されるタイムゾーンを指定
+      CONFIG_PATH: /mnt/config
+      CERT_EMAIL: your@email.com
+      DEBUG: 1
+```
+

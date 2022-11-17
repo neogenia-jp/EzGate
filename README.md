@@ -267,3 +267,47 @@ location ~* \.(gif|jpg|jpeg)$ {
 ```
 
 You can find the example in the `example5/` directory of this repository.
+
+### Log rotation
+
+You can customize nginx log rotation.
+The default is to switch files every day and keep the last 60 days.
+
+```ruby:config
+SERVER_IP = '192.168.11.22'
+
+domain("#{SERVER_IP}.nip.io") {
+  proxy_to :webapp1
+
+  # Specify the number of days to keep the log file
+  logrotate 7     # keep last 7 days.
+  logrotate 90    # keep last 90 days.
+  logrotate false # never rotation.
+}
+```
+
+To make log files persistent, you can mount the host directory against `/var/log/nginx/` in the container.
+To change the time zone, specify the `TZ` environment variable.
+
+```yml:docker-compose.yml
+services:
+  nginx1:
+    container_name: nginx1
+    image: nginxdemos/hello
+
+  gate:
+    container_name: gate
+    image: neogenia/ez-gate:20221115
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./mnt:/mnt/
+      - ./logs:/var/log/nginx/   # Mount host-side directory
+    environment:
+      TZ: Asia/Tokyo   # Specify time zone to be logged
+      CONFIG_PATH: /mnt/config
+      CERT_EMAIL: your@email.com
+      DEBUG: 1
+```
+

@@ -94,7 +94,7 @@ class Config
   TEMPLATE_PATH = '/var/scripts/config_template.erb'
   LOGROTATE_TEMPLATE_PATH = '/var/scripts/logrotate_template.erb'
 
-  attr_accessor :domain, :locations, :current_location, :logrotate
+  attr_accessor :domain, :locations, :current_location, :logrotate_generation, :logrotate_timing
   attr_reader :enable_ssl
 
   def initialize
@@ -183,6 +183,7 @@ class Config
   end
 
   def output_logrotate(io)
+    # logrotate のデバッグ: /usr/sbin/logrotate -dv /etc/logrotate.conf
     erb = ERB.new(File.read LOGROTATE_TEMPLATE_PATH)
     result = erb.result_with_hash({config: self})
     io.write(result)
@@ -317,8 +318,9 @@ class Parser
     @config.key_file = file_path
   end
 
-  def logrotate(val)
-    @config.logrotate = val
+  def logrotate(generation, timing=nil)
+    @config.logrotate_generation = generation
+    @config.logrotate_timing = timing
   end
 
   def self.parse(text)

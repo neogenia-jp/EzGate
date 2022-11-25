@@ -308,3 +308,24 @@ services:
       DEBUG: 1
 ```
 
+### WebSocket
+
+```ruby:config
+domain("rails.192.168.11.22.nip.io") {
+  proxy_to :rails
+
+  # WebSocket
+  location('/cable') {
+    proxy_to :rails
+    upstream_log true   # 中継先の情報をデバッグするためのログをONにする
+
+    nginx_config <<~CONFIG
+      # for WebSocket
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade websocket;
+      proxy_set_header Connection Upgrade;
+    CONFIG
+  }
+}
+```
+

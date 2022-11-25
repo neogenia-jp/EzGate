@@ -94,7 +94,7 @@ class Config
   TEMPLATE_PATH = '/var/scripts/config_template.erb'
   LOGROTATE_TEMPLATE_PATH = '/var/scripts/logrotate_template.erb'
 
-  attr_accessor :domain, :locations, :current_location, :logrotate_generation, :logrotate_timing
+  attr_accessor :domain, :locations, :current_location, :logrotate_generation, :logrotate_timing, :upstream_log
   attr_reader :enable_ssl
 
   def initialize
@@ -321,6 +321,10 @@ class Parser
   def logrotate(generation, timing=nil)
     @config.logrotate_generation = generation
     @config.logrotate_timing = timing
+  end
+
+  def upstream_log(enabled = true)
+    @config.upstream_log = enabled
   end
 
   def self.parse(text)

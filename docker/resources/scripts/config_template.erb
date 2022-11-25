@@ -35,6 +35,12 @@ server {
     ssl_certificate_key  /etc/letsencrypt/live/<%= config.domain %>/privkey.pem;
   <% end %>
 
+    # for WebSocket
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+
     <%= config.get_nginx_config %>
 
  <% config.locations.each do |loc, upstreams| %>

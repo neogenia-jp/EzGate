@@ -136,11 +136,15 @@ class Config
   end
 
   def add_nginx_config(config_text)
-    log "CONFIG: Added nginx_config in '#{@current_location}'"
-    (@nginx_configs[@current_location] ||= []) << config_text
+    l = @current_location || ''
+    if !l.empty?
+      _add_upstream l   # locations も作っておく必要あり
+    end
+    (@nginx_configs[l] ||= []) << config_text
+    log "CONFIG: Added nginx_config in '#{l}'"
   end
 
-  def get_nginx_config(location = nil)
+  def get_nginx_config(location = '')
     @nginx_configs[location]&.flatten&.join("\n")
   end
 

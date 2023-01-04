@@ -1,4 +1,4 @@
-"/var/log/nginx/error_<%= config.normalized_domain %>.log" "/var/log/nginx/access_<%= config.normalized_domain %>.log" {
+"/var/log/nginx/error_<%= config.normalized_domain %>.log" "/var/log/nginx/access_<%= config.normalized_domain %>.log" "/var/log/nginx/upstream_<%= config.normalized_domain %>.log" {
         <%= config.logrotate_timing || :daily %>
         missingok
         rotate <%= config.logrotate_generation || 60 %>

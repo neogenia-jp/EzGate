@@ -55,6 +55,9 @@ server {
 
         error_log /var/log/nginx/error_<%= config.normalized_domain %>.log;
         access_log /var/log/nginx/access_<%= config.normalized_domain %>.log main;
+     <% if config.upstream_log %>
+        access_log /var/log/nginx/upstream_<%= config.normalized_domain %>.log upstream;
+     <% end %>
 
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;

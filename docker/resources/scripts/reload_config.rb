@@ -2,12 +2,16 @@
 
 require 'erb'
 
-def log(*messages)
+def log(*messages, **h)
+  a = []
   messages.each do |msg|
-    print msg
-    print ' '
+    a << msg
   end
-  puts
+  h.each do |k, v|
+    next unless v
+    a << "#{k}=#{v}"
+  end
+  puts a.join(' ')
 end
 
 def shell_exec(*cmd)
@@ -34,9 +38,9 @@ def normalize_name(name)
 end
 
 class Upstream
-  attr_reader :name, :dest, :from_ips
+  attr_reader :name, :dest, :from_ips, :grpc
 
-  def initialize(domain, dest, from_ips = nil)
+  def initialize(domain, dest, from_ips = nil, grpc = nil)
     @@index ||= 0
     @@index += 1
     @name = "#{normalize_name domain}-#{@@index}"
@@ -44,6 +48,7 @@ class Upstream
     if from_ips && from_ips.to_s != 'all'
       @from_ips = [from_ips].flatten
     end
+    @grpc = grpc
   end
 
   def proxy_to; @dest; end
@@ -108,10 +113,10 @@ class Config
     normalize_name domain
   end
 
-  def add_upstream(destinations, from=nil)
+  def add_upstream(destinations, from=nil, grpc: nil)
     l = @current_location || '/'
-    (@locations[l] ||= []) << Upstream.new(normalized_domain, destinations, from)
-    log "CONFIG: Added Upstream domain='#{normalized_domain}' dest='#{destinations}' from_ips='#{from}' in '#{l}'"
+    _add_upstream l, normalized_domain, destinations, from, grpc
+    log "CONFIG: Added Upstream.", domain: normalized_domain, dest: destinations, from_ips: from, in: l, grpc: grpc
   end
 
   def all_upstreams
@@ -120,9 +125,9 @@ class Config
 
   def add_redirect(destination, status=301)
     l = @current_location || '/'
-    @locations[l] ||= []  # locations も作っておく必要あり
+    _add_upstream l   # locations も作っておく必要あり
     (@nginx_configs[l] ||= []) << Redirect.new(destination, status)
-    log "CONFIG: Added Redirect domain='#{normalized_domain}' dest='#{destination}' status=#{status} in '#{l}'"
+    log "CONFIG: Added Redirect.", domain: normalized_domain, dest: destination, status: status, in: l
   end
 
   def all_redirect(location = nil)
@@ -243,6 +248,20 @@ class Config
   end
 
   private
+  def _add_upstream(location, *upstream_params)
+    l = @locations[location] ||= []
+    if upstream_params.length > 0
+      l << Upstream.new(*upstream_params)
+    end
+
+    # 特異メソッドを追加
+    if !l.respond_to?(:grpc?)
+      def l.grpc?
+        self.first&.grpc
+      end
+    end
+  end
+
   def _check_required(var_name)
     val = "#{self.send(var_name)}".strip
     raise "Parameter '#{var_name}' is not defined!" if val == ''
@@ -295,6 +314,11 @@ class Parser
   def proxy_to(*destinations, from: :all)
     log "PARSER: detect proxy_to(#{destinations}, from: #{from})"
     @config.add_upstream destinations, from
+  end
+
+  def grpc_to(*destinations, from: :all)
+    log "PARSER: detect grpc_to(#{destinations}, from: #{from})"
+    @config.add_upstream destinations, from, grpc: true
   end
 
   def redirect_to(destination, status: 301)

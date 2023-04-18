@@ -1,6 +1,7 @@
 # EzGate
 
 EzGate is a docker container that aims to make it easy to set up a reverse proxy that supports HTTPS.
+WebSocket and gRPC proxy are also supported.
 
 [日本語版](./README.ja.md)
 
@@ -327,6 +328,35 @@ domain("rails.192.168.11.22.nip.io") {
       proxy_http_version 1.1;
       proxy_set_header Upgrade websocket;
       proxy_set_header Connection Upgrade;
+    CONFIG
+  }
+}
+```
+
+### gRPC
+
+It is also possible to relay gRPC communications. Version `20230104` or later is required.
+EzGate takes the role of SSL termination. The client needs to connect using SSL.
+SSL is not required on the upstream server.
+
+```ruby:config
+domain("grpc.192.168.11.22.nip.io") {
+  # proxy gRPC connection.
+  grpc_to 'grpc_server1:50051', 'grpc_server2:50051'
+
+  nginx_config <<~CONFIG
+    ssl_verify_client off;           # [Optional] Do not check client SSL certificates
+    error_page 502 = /error502grpc;
+  CONFIG
+
+  # Return error in gRPC format if backend is unavailable
+  location('= /error502grpc') {
+    nginx_config <<~CONFIG
+      internal;
+      default_type application/grpc;
+      add_header grpc-status 14;
+      add_header grpc-message "unavailable all upstreams!";
+      return 204;
     CONFIG
   }
 }

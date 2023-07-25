@@ -95,18 +95,36 @@ class Redirect
   end
 end
 
+class ErbWriter
+  def initialize(erb_file_path, config)
+    @erb_file_path = erb_file_path
+    @config = config
+  end
+
+  def output(io)
+    erb = ERB.new(File.read @erb_file_path)
+    result = erb.result_with_hash({config: @config})
+    io.write(result)
+  end
+
+  def output_to_file(file_path)
+    File.open(file_path, 'w') {|f| output f}
+  end
+end
+
 class Config
-  TEMPLATE_PATH = '/var/scripts/config_template.erb'
   LOGROTATE_TEMPLATE_PATH = '/var/scripts/logrotate_template.erb'
 
-  attr_accessor :domain, :locations, :current_location, :logrotate_generation, :logrotate_timing, :upstream_log
-  attr_reader :enable_ssl
+  attr_accessor :domain, :locations, :current_location, :logrotate_generation, :logrotate_timing, :upstream_log, :no_ssl
 
   def initialize
-    @enable_ssl = false
     @curent_location = nil
     @locations = { }
     @nginx_configs = { }
+  end
+
+  def get_template_path(name)
+    "/var/scripts/config_template_#{name}.erb"
   end
 
   def normalized_domain
@@ -180,43 +198,38 @@ class Config
     @output_path ||= "#{self.class.output_dir}#{normalized_domain}"
   end
 
-  # TODO: ConfigWriter として別クラスに切り出し、ポリモーフィズムでlogrotateと棲み分け
-  def output(io)
-    erb = ERB.new(File.read TEMPLATE_PATH)
-    result = erb.result_with_hash({config: self})
-    io.write(result)
-  end
-
-  def output_to_file(file_path = nil)
-    File.open(file_path || output_path, 'w') {|f| output f}
-  end
-
-  def output_logrotate(io)
-    # logrotate のデバッグ: /usr/sbin/logrotate -dv /etc/logrotate.conf
-    erb = ERB.new(File.read LOGROTATE_TEMPLATE_PATH)
-    result = erb.result_with_hash({config: self})
-    io.write(result)
+  def output_to_file(file_path = nil, template: )
+    tp = get_template_path template
+    ErbWriter.new(tp, self).output_to_file(file_path || output_path, 'w')
   end
 
   def output_logrotate_to_file(file_path = nil)
-    File.open(file_path || "/etc/logrotate.d/nginx_#{normalized_domain}", 'w') {|f| output_logrotate f}
+    # logrotate のデバッグ: /usr/sbin/logrotate -dv /etc/logrotate.conf
+    ErbWriter.new(LOGROTATE_TEMPLATE_PATH, self).output_to_file(file_path || "/etc/logrotate.d/nginx_#{normalized_domain}", 'w')
   end
 
-  def setup_ssl(force=nil)
-    unless cert_file
-      if force || !File.exist?("/etc/letsencrypt/live/#{domain}")
-        output_to_file
-        shell_exec 'nginx -t'
-        shell_exec 'service nginx restart'
-        sleep 2
+  # TODO: ネーミング再考
+  def setup_ssl(force_update_cert = nil)
+    if @no_ssl
+      # HTTPS 非対応
+      output_to_file template: :http
+    else
+      # HTTPS 対応版
+      unless cert_file
+        # 証明書ファイルが指定されていなければ、Let's Encrypt を使って生成する
+        if force_update_cert || !File.exist?("/etc/letsencrypt/live/#{domain}")
+          output_to_file template: :cert
+          shell_exec 'nginx -t'
+          shell_exec 'service nginx restart'
+          sleep 2
 
-        LetsEncrypt.setup self
-        sleep 2
+          LetsEncrypt.setup self
+          sleep 2
+        end
       end
-    end
 
-    @enable_ssl = true
-    output_to_file
+      output_to_file template: :https
+    end
     shell_exec 'nginx -t'
     shell_exec 'service nginx reload'
     sleep 2
@@ -296,6 +309,7 @@ class Parser
     @hash = {}
   end
 
+  # @return [Array<Config>]
   def results
     @hash.values
   end
@@ -334,6 +348,10 @@ class Parser
     @config.add_nginx_config config_text
   end
 
+  def no_ssl
+    @config.no_ssl = true
+  end
+
   def cert_email(mail_address)
     @config.cert_email = mail_address
   end
@@ -365,6 +383,8 @@ class Parser
   end
 end
 
+# 環境変数やコンフィグファイルを解析してConfigインスタンスを返す
+# @return [Array<Config>]
 def get_config
   config_path = ENV['CONFIG_PATH']
   if config_path

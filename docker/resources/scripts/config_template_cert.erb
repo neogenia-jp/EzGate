@@ -1,0 +1,8 @@
+server {
+    server_name  <%= config.domain %>;
+    listen       80;
+
+    location ^~ /.well-known/acme-challenge/ {
+       root /var/www/letsencrypt;
+    }
+}

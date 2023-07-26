@@ -157,6 +157,17 @@ domain('localhost') {
 
 See the `example2/` directory in this repository.
 
+## Do not use HTTPS
+
+To accept connections over Plain HTTP instead of using HTTPS, the `no_ssl` option can be used.
+
+```ruby:config
+domain('localhost') {
+  no_ssl  # HTTPSを使用しない
+  proxy_to 'webapp1:3000'
+}
+```
+
 ## More advanced settings
 
 ### Switch the relay destination according to the access source IP address

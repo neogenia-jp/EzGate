@@ -101,14 +101,14 @@ class ErbWriter
     @config = config
   end
 
-  def output(io)
+  def write(io)
     erb = ERB.new(File.read @erb_file_path)
     result = erb.result_with_hash({config: @config})
     io.write(result)
   end
 
-  def output_to_file(file_path)
-    File.open(file_path, 'w') {|f| output f}
+  def write_to_file(file_path)
+    File.open(file_path, 'w') {|f| write f}
   end
 end
 
@@ -200,12 +200,12 @@ class Config
 
   def output_to_file(file_path = nil, template: )
     tp = get_template_path template
-    ErbWriter.new(tp, self).output_to_file(file_path || output_path, 'w')
+    ErbWriter.new(tp, self).write_to_file(file_path || output_path)
   end
 
   def output_logrotate_to_file(file_path = nil)
     # logrotate のデバッグ: /usr/sbin/logrotate -dv /etc/logrotate.conf
-    ErbWriter.new(LOGROTATE_TEMPLATE_PATH, self).output_to_file(file_path || "/etc/logrotate.d/nginx_#{normalized_domain}", 'w')
+    ErbWriter.new(LOGROTATE_TEMPLATE_PATH, self).write_to_file(file_path || "/etc/logrotate.d/nginx_#{normalized_domain}")
   end
 
   # TODO: ネーミング再考

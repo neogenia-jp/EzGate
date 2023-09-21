@@ -2,6 +2,7 @@
 
 EzGate は HTTPS に対応したリバースプロキシをお手軽に立てることができる事を目指した Docker コンテナです。
 WebSocket や gRPC の中継にも対応しています。
+HTTPS を使用せず Plain HTTP で接続を受け付けることも可能です。
 
 ## クイックスタート
 
@@ -153,6 +154,17 @@ domain('localhost') {
 ```
 
 このリポジトリの `example2/` ディレクトリを参照してください。
+
+## HTTPSを使用しない
+
+HTTPS を使用せず、Plain HTTP で接続を受け付けるには、`no_ssl` オプションが使用できます。
+
+```ruby:config
+domain('localhost') {
+  no_ssl  # HTTPSを使用しない
+  proxy_to 'webapp1:3000'
+}
+```
 
 ## さらに高度な設定
 

@@ -287,7 +287,7 @@ class Config
 
   def _check_file_exists(var_name)
     val = _check_required var_name
-    raise "File not found! '#{var_name}'" unless File.exist? val
+    raise "File not found! path='#{val}' specified by '#{var_name}'" unless File.exist? val
     val
   end
 

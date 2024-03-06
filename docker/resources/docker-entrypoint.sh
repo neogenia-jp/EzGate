@@ -12,7 +12,7 @@ else
       exit 1
     fi
   fi
-  logs="/var/log/monit.log /var/log/nginx/*error*"
+  logs="/var/log/monit.log /var/log/nginx/*error*.log"
 
   # start monit
   echo '--- START MONIT -----'

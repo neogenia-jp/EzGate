@@ -44,9 +44,10 @@ class SocatManager
   def _get_command(dest, unix_socket_path = nil)
     unix_socket_path ||= _get_unix_socket_path_name(dest).first
     cmd = ['socat']
-    if ENV['SOCAT_LOGGING']
-      cmd << "-lf#{unix_socket_path}.log"
-      cmd << '-v'
+    cmd << "-lf#{unix_socket_path}.log"
+    if ENV['SOCAT_DUMP_LOGS']
+      cmd << "-r #{unix_socket_path}.request.dump"
+      cmd << "-R #{unix_socket_path}.response.dump"
     end
     cmd << "UNIX-LISTEN:#{unix_socket_path},fork,user=www-data,max-children=#{ENV.fetch 'SOCAT_MAX_CHILDREN', 10}"
     cmd << "TCP:#{dest}"

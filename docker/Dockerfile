@@ -11,7 +11,7 @@ ENV LANG=C.UTF-8
 #RUN ln -sf /usr/share/zoneinfo/Japan /etc/localtime
 
 ############################################################
-# install nginx
+# install nginx, and depends packages
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         monit cron \
@@ -22,6 +22,7 @@ RUN apt-get update \
         letsencrypt \
         logrotate \
         ruby \
+        socat \
         less vim-tiny \
  && apt-get clean \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*

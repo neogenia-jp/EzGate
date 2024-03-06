@@ -142,11 +142,16 @@ class Config
 
   def check
     _check_required :domain
-    if cert_file || key_file
-      _check_file_exists :cert_file
-      _check_file_exists :key_file
-    else
-      _check_required :cert_email
+    unless @no_ssl
+      # HTTPS 対応にする場合
+      if cert_file || key_file
+        # cert, key が指定されていれば存在チェック
+        _check_file_exists :cert_file
+        _check_file_exists :key_file
+      else
+        # 指定されていなかったら Let's Encrypt で証明書発行するのでメールアドレスが必要
+        _check_required :cert_email
+      end
     end
 
     all_upstreams.each { |u| u.check }

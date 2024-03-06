@@ -1,4 +1,4 @@
-FROM ubuntu:focal-20210217
+FROM ubuntu:noble-20240225
 
 LABEL Vendor     "Neogenia Ltd."
 LABEL maintainer "WATARU MAEDA <w.maeda@neogenia.co.jp>"

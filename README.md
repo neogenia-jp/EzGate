@@ -1,7 +1,10 @@
 # EzGate
 
-EzGate is a docker container that aims to make it easy to set up a reverse proxy that supports HTTPS.
-WebSocket and gRPC proxy are also supported.
+EzGate is a Docker container that aims to provide an easy reverse proxy for HTTPS.
+- It also supports WebSocket and gRPC relay.
+- It is also possible to accept connections via Plain HTTP without using HTTPS.
+- nginx can be started even when the connection to the relay destination is not available (option for development environment).
+- Relayed data can be easily dumped out (for debugging).
 
 [docker hub](https://hub.docker.com/repository/docker/neogenia/ez-gate/general)
 

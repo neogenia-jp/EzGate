@@ -3,6 +3,8 @@
 EzGate is a docker container that aims to make it easy to set up a reverse proxy that supports HTTPS.
 WebSocket and gRPC proxy are also supported.
 
+[docker hub](https://hub.docker.com/repository/docker/neogenia/ez-gate/general)
+
 [日本語版](./README.ja.md)
 
 ## Quick start
@@ -245,6 +247,7 @@ You can find the example in the `example4/` directory of this repository.
 ### Switching the relay destination for each location
 
 It is possible to switch the forwarding destination only when a specific path is accessed.
+(Version: 20210318 or later)
 
 For example, you can easily configure the `webapp1` server to relay normal accesses,
 and the `webapp2` server to relay only when `/map_api` is accessed.
@@ -284,6 +287,7 @@ You can find the example in the `example5/` directory of this repository.
 
 You can customize nginx log rotation.
 The default is to switch files every day and keep the last 60 days.
+(Version: 20221125 or later)
 
 ```ruby:config
 SERVER_IP = '192.168.11.22'
@@ -349,6 +353,7 @@ domain("rails.192.168.11.22.nip.io") {
 It is also possible to relay gRPC communications. Version `20230104` or later is required.
 EzGate takes the role of SSL termination. The client needs to connect using SSL.
 SSL is not required on the upstream server.
+(Version: 20230726 or later)
 
 ```ruby:config
 domain("grpc.192.168.11.22.nip.io") {
@@ -373,3 +378,65 @@ domain("grpc.192.168.11.22.nip.io") {
 }
 ```
 
+## Developer Options
+
+In a development environment, it is possible for various reasons,
+such as the order in which Docker containers are started, restarts, etc., to prevent connections to relay destinations.
+Normally, a connection check of the relay destination is performed when EzGate is started,
+but by specifying the `adapter` option, the check is not performed.
+(Version: 20240306 or later)
+
+```ruby:mnt/config
+domain("vm.192.168.56.101.nip.io") {
+  proxy_to 'wordpress:80'
+
+  # If an adapter is specified, connection checks to relay destinations are not performed.
+  adapter :socat
+}
+```
+
+Also, if `adapter :socat` is specified, relay data can be dumped by adding the environment variable `SOCAT_DUMP_LOGS`.
+(For debugging. It is not intended for operation in a production environment.)
+
+```yml:docker-compose.yml
+services:
+  wordpress:
+    container_name: wordpress
+    image: wordpress:5.6.0-apache
+
+  gate:
+    container_name: gate
+    image: neogenia/ez-gate:20240306
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./mnt:/mnt/
+    environment:
+      CONFIG_PATH: /mnt/config
+      CERT_EMAIL: your@email.com
+      SOCAT_DUMP_LOGS: 1   # Dumping relay data
+```
+
+A dump files will be output under `/var/spool/` in the container.
+The file name will be `*.request.dump` `*.response.dump`.
+
+```sh
+# Start container
+docker-compose up --build -d
+
+# Attach to EzGate container with bash
+docker exec -ti gate bash
+
+# Check dump files
+ls -l /var/spool/
+root@8432a255db3e:/# ls -l /var/spool/
+total 2452
+drwxr-xr-x. 3 root     root    4096 Mar  6 12:03 cron
+srwxr-xr-x. 1 www-data root       0 Mar  7 10:14 wordpress_80.sock
+-rw-r--r--. 1 root     root       0 Mar  7 10:14 wordpress_80.sock.log
+-rw-r--r--. 1 root     root    1055 Mar  7 10:15 wordpress_80.sock.request.dump
+-rw-r--r--. 1 root     root    1835 Mar  7 10:15 wordpress_80.sock.response.dump
+lrwxrwxrwx. 1 root     root       7 Feb 25 11:02 mail -> ../mail
+root@8432a255db3e:/#
+```

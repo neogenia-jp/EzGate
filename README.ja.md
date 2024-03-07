@@ -1,8 +1,13 @@
 # EzGate
 
 EzGate は HTTPS に対応したリバースプロキシをお手軽に立てることができる事を目指した Docker コンテナです。
-WebSocket や gRPC の中継にも対応しています。
-HTTPS を使用せず Plain HTTP で接続を受け付けることも可能です。
+- WebSocket や gRPC の中継にも対応しています。
+- HTTPS を使用せず Plain HTTP で接続を受け付けることも可能です。
+- 中継先に接続できない状態でもnginxを起動できます（開発環境向けオプション）。
+- 中継したデータを簡単にダンプ出力することができます（デバッグ用）。
+
+[docker hub](https://hub.docker.com/repository/docker/neogenia/ez-gate/general)
+[Qiitaでの解説記事](https://qiita.com/lobin-z0x50/items/2d91050fa2e7bffa692a)
 
 ## クイックスタート
 
@@ -243,6 +248,7 @@ domain(DOMAIN.gsub /^www\./, '') {
 ### ロケーションごとに中継先を切り替える
 
 ある特定のパスにアクセスされた時だけ、中継先を切り替えることが出来ます。
+（バージョン: 20210318 以降）
 
 例えば、 通常のアクセスは `webapp1` サーバに中継し、 `/map_api` にアクセスされた時だけ
 `webapp2` サーバに中継する、といった設定が簡単に出来ます。
@@ -282,6 +288,8 @@ location ~* \.(gif|jpg|jpeg)$ {
 
 nginx のログローテーションをカスタマイズ出来ます。
 デフォルトは1日ごとにファイルを切り替え、過去60日分が保存されます。
+（バージョン: 20221125 以降）
+
 
 ```ruby:config
 SERVER_IP = '192.168.11.22'
@@ -347,6 +355,7 @@ domain("rails.192.168.11.22.nip.io") {
 gRPC通信を中継することも可能です。バージョン `20230104` 以降が必要です。
 EzGate がSSL終端の役割を担います。クライアントからは SSL での接続が必要です。
 中継先のサーバでは SSL は不要です。
+（バージョン: 20230726 以降）
 
 ```ruby:config
 domain("grpc.192.168.11.22.nip.io") {
@@ -371,3 +380,63 @@ domain("grpc.192.168.11.22.nip.io") {
 }
 ```
 
+## 開発者向けオプション
+
+開発環境などでは、Dockerコンテナの起動順や再起動など、さまざま事情で中継先に接続できない状態が起こりえます。
+通常は、EzGate起動時に中継先の接続チェックが行われますが、`adapter` オプションを指定することでチェックを行わないようになります。
+（バージョン: 20240306 以降）
+
+```ruby:mnt/config
+domain("vm.192.168.56.101.nip.io") {
+  proxy_to 'wordpress:80'
+
+  # アダプターを指定すれば中継先への接続チェックを行わない
+  adapter :socat
+}
+```
+
+また、`adapter :socat` を指定していると、環境変数 `SOCAT_DUMP_LOGS` を追加することで中継データをダンプさせることもできます。
+（デバッグ用。本番環境での運用は想定していません）
+
+```yml:docker-compose.yml
+services:
+  wordpress:
+    container_name: wordpress
+    image: wordpress:5.6.0-apache
+
+  gate:
+    container_name: gate
+    image: neogenia/ez-gate:20240306
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./mnt:/mnt/
+    environment:
+      CONFIG_PATH: /mnt/config
+      CERT_EMAIL: your@email.com
+      SOCAT_DUMP_LOGS: 1   # 中継データをダンプする
+```
+
+コンテナ内の `/var/spool/` 配下にダンプファイルが出力されます。
+ファイル名は `*.request.dump` `*.response.dump` となります。
+
+```sh
+# コンテナ起動
+docker-compose up --build -d
+
+# EzGateコンテナに bash でアタッチ
+docker exec -ti gate bash
+
+# ダンプファイルを確認
+ls -l /var/spool/
+root@8432a255db3e:/# ls -l /var/spool/
+total 2452
+drwxr-xr-x. 3 root     root    4096 Mar  6 12:03 cron
+srwxr-xr-x. 1 www-data root       0 Mar  7 10:14 wordpress_80.sock
+-rw-r--r--. 1 root     root       0 Mar  7 10:14 wordpress_80.sock.log
+-rw-r--r--. 1 root     root    1055 Mar  7 10:15 wordpress_80.sock.request.dump
+-rw-r--r--. 1 root     root    1835 Mar  7 10:15 wordpress_80.sock.response.dump
+lrwxrwxrwx. 1 root     root       7 Feb 25 11:02 mail -> ../mail
+root@8432a255db3e:/#
+```

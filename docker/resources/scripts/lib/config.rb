@@ -34,10 +34,11 @@ class Config
   # @return [Array<Upstream>]
   def all_upstreams
     a = @locations.values.flatten
-    case @adapter.to_s
+    case @adapter.to_s.downcase
     when 'socat'
       a.each {|x| x.socat = true }
-    when 'none', 'direct'
+    when nil, '', 'none', 'direct'
+      # do nothing
     else
       raise "Unknown adapter: #{@adapter}"
     end

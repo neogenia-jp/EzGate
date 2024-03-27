@@ -7,6 +7,12 @@
   }
 <% end %>
 
+# --- convert HTTP Header ---
+map $http_x_forwarded_proto $xfp {
+  default $http_x_forwarded_proto;
+  "" $scheme;
+}
+
 # --- server definitions for plain HTTP ---
 server {
     server_name  <%= config.domain %>;
@@ -43,7 +49,8 @@ server {
         grpc_pass $target_upstream;
      <% else %>
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_set_header X-Forwarded-Proto $xfp;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $http_host;
         proxy_set_header X-Request-ID $request_id;

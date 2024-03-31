@@ -13,7 +13,7 @@ IMAGE_NAME=neogenia/ez-gate
 NAME_TAG=$IMAGE_NAME:$TAG
 echo building image "$NAME_TAG" ...
 
-(cd $SCRIPT_DIR/docker; time docker build -t $NAME_TAG .) \
+(cd $SCRIPT_DIR/src; time docker build -t $NAME_TAG .) \
 && cat <<GUIDE
 # build finished successfuly.
 # If you push image to DockerHub, use below command:

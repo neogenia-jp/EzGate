@@ -49,9 +49,23 @@ class SocatManager
       cmd << "-r #{unix_socket_path}.request.dump"
       cmd << "-R #{unix_socket_path}.response.dump"
     end
-    cmd << "UNIX-LISTEN:#{unix_socket_path},fork,user=www-data,max-children=#{ENV.fetch 'SOCAT_MAX_CHILDREN', 10}"
+    cmd << _build_socat_listen(unix_socket_path)
     cmd << "TCP:#{dest}"
     cmd.join ' '
+  end
+
+  # socat listen 引数を作る
+  def _build_socat_listen(unix_socket_path, *options)
+    cmd = ["UNIX-LISTEN:#{unix_socket_path}"]
+    cmd << 'fork'
+    cmd << 'user=www-data'
+    cmd << "backlog=#{self.class.get_so_max_conn}"
+    max_children = ENV['SOCAT_MAX_CHILDREN']
+    if max_children
+      cmd << "max-children=#{max_children}"
+    end
+    cmd.concat options
+    cmd.join ','
   end
 
   # socat が起動していなかったら起動する
@@ -129,5 +143,10 @@ class SocatManager
   def _get_unix_socket_path_name(dest_str)
     n = _get_unix_socket_name dest_str
     ["#{UNIX_SOCKET_BASE_DIR}/#{n}.sock", n]
+  end
+    
+  # somaxconn を読み取る
+  def self.get_so_max_conn
+    @@max_conn ||= File.read('/proc/sys/net/core/somaxconn').strip
   end
 end

@@ -15,4 +15,7 @@ Icon?
 ehthumbs.db
 Thumbs.db
 
-.bundle
+vendor
+exapmle*
+.bundle/
+!.bundle/config

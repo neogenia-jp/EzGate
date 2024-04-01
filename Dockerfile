@@ -61,3 +61,5 @@ COPY src /var/scripts
 RUN chmod 700 /var/scripts/*
 
 RUN mkdir /var/www/letsencrypt
+
+RUN gem install bundler

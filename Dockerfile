@@ -55,11 +55,16 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 
 EXPOSE 80 443
 
-#####################################################
-# copy script files
-COPY src /var/scripts
-RUN chmod 700 /var/scripts/*
-
 RUN mkdir /var/www/letsencrypt
 
 RUN gem install bundler
+
+#####################################################
+# copy script files
+WORKDIR /var/scripts
+COPY src ./
+RUN chmod 700 ./reload_config.rb
+
+RUN bundle install \
+ && bin/rake test
+

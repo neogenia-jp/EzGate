@@ -1,5 +1,6 @@
 #!/usr/bin/ruby
 # frozen_string_literal: true
+
 require_relative 'lib/functions'
 require_relative 'lib/parser'
 require_relative 'lib/config'
@@ -48,6 +49,7 @@ end
 
 backup_dir(Config.output_dir) do
   configurations = get_config
+  raise 'no configurations. please set $CONFIG_PATH or $PROXY_TO env var.' unless configurations
 
   # check
   configurations.each do |config|

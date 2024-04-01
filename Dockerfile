@@ -57,7 +57,7 @@ EXPOSE 80 443
 
 #####################################################
 # copy script files
-COPY app /var/scripts
+COPY src /var/scripts
 RUN chmod 700 /var/scripts/*
 
 RUN mkdir /var/www/letsencrypt

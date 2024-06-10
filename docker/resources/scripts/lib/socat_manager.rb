@@ -68,7 +68,7 @@ class SocatManager
         return pid
       end
     end
-    pid = shell_spawn cmd  # 子プロセスを起動
+    pid = daemon_exec cmd  # 子プロセスを起動
     _log "started. PID=#{pid} cmd=#{cmd}"
     pid
   end

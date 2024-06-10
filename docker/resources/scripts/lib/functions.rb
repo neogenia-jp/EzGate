@@ -26,15 +26,16 @@ def shell_exec(*cmd)
   exit_status
 end
 
-# 子プロセスを起動する
+# デーモンプロセスを起動する
 # @param [Array<String>] cmd
-# @param [Boolean] detach 子プロセスを切り離して、親が終了しても ゾンビ状態にならないようにする
-def shell_spawn(*cmd, detach: true)
+# @return [Integer] プロセスID
+def daemon_exec(*cmd)
   cmd_line = cmd.join(' ')
-  log('SHELL_SPAWN:', cmd_line)
-  pid = spawn cmd_line
-  if detach
-    Process.detach pid
+  pid = Process.fork do
+    Process.daemon
+    Process.exec(cmd_line)
   end
+  Process.detach pid
+  log('DAEMON_EXEC:', cmd_line)
   pid
 end

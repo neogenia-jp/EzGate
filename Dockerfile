@@ -29,11 +29,11 @@ RUN apt-get update \
 
 ############################################################
 # nginx settings
-ADD resources/nginx/etc/nginx/nginx.conf /etc/nginx/
+COPY docker.resources/nginx/etc/nginx/nginx.conf /etc/nginx/
 
 ############################################################
 # monit settings
-ADD resources/monit/* /etc/monit/conf.d/
+COPY docker.resources/monit/* /etc/monit/conf.d/
 
 ############################################################
 # add 'reload nginx' into setting of cron
@@ -48,16 +48,23 @@ RUN rm /etc/cron.daily/dpkg \
 RUN sed -i -e "s|^/var/log/nginx/\*.log|/var/log/nginx/access.log /var/log/nginx/error.log|" \
               /etc/logrotate.d/nginx
 
-ADD resources/docker-entrypoint.sh /docker-entrypoint.sh
+COPY docker.resources/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod 700 /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
 EXPOSE 80 443
 
+RUN mkdir /var/www/letsencrypt
+
+RUN gem install bundler
+
 #####################################################
 # copy script files
-ADD resources/scripts /var/scripts
-RUN chmod 700 /var/scripts/*
+WORKDIR /var/scripts
+COPY src ./
+RUN chmod 700 ./reload_config.rb
 
-RUN mkdir /var/www/letsencrypt
+RUN bundle install \
+ && bin/rake test
+

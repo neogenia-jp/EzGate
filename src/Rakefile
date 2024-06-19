@@ -1,0 +1,7 @@
+# frozen_string_literal: true
+
+desc 'Run all tests'
+task :test do
+  sh 'bundle exec ruby test/all_test.rb'
+end
+

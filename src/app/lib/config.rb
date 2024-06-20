@@ -7,7 +7,7 @@ require_relative 'lets_encrypt'
 require_relative 'domain_util'
 
 class Config
-  LOGROTATE_TEMPLATE_PATH = '/var/scripts/logrotate_template.erb'
+  LOGROTATE_TEMPLATE_PATH = '/var/scripts/app/logrotate_template.erb'
 
   attr_accessor :domain, :locations, :current_location, :logrotate_generation, :logrotate_timing, :upstream_log, :no_ssl, :adapter
 
@@ -18,7 +18,7 @@ class Config
   end
 
   def get_template_path(name)
-    "/var/scripts/config_template_#{name}.erb"
+    "/var/scripts/app/config_template_#{name}.erb"
   end
 
   def normalized_domain

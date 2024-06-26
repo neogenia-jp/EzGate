@@ -15,8 +15,8 @@ map $http_x_forwarded_proto $xfp {
 }
 
 map $http_connection $conn {
-  default keep-alive;
-  upgrade upgrade;                 # for HTTP keepalive
+  default keep-alive;        # for HTTP keepalive
+  upgrade upgrade;           # for WebSocket
 }
 
 # --- server definitions for plain HTTP ---

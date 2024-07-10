@@ -45,6 +45,7 @@ class SocatManager
   def _get_command(dest, unix_socket_path = nil)
     unix_socket_path ||= _get_unix_socket_path_name(dest).first
     cmd = ['socat']
+    cmd << "-T#{ENV['SOCAT_INACTIVE_TIMEOUT']||300}"
     cmd << "-lf#{unix_socket_path}.log"
     if ENV['SOCAT_DUMP_LOGS']
       cmd << "-r #{unix_socket_path}.request.dump"

@@ -59,6 +59,7 @@ class SocatManager
     cmd = ["UNIX-LISTEN:#{unix_socket_path}"]
     cmd << 'fork'
     cmd << 'user=www-data'
+    cmd << 'unlink-early'   # すでにソケットファイルが存在したら削除する
     cmd << "backlog=#{self.class.get_so_max_conn}"
     max_children = ENV['SOCAT_MAX_CHILDREN']
     if max_children

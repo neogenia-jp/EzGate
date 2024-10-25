@@ -113,7 +113,7 @@ class SocatManager
       # UNIXソケットファイルを削除
       mr = cmd.match /UNIX-LISTEN:(.*\.sock)/
       if mr
-        File.unlink mr[1] if File.exists? mr[1]
+        File.unlink mr[1] if File.exist? mr[1]
       end
     end
   end

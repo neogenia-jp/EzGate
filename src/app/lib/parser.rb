@@ -80,12 +80,20 @@ class Parser
     @config.upstream_log = enabled
   end
 
-  def self.parse(text)
-    Parser.new.tap{ |p| p.instance_eval text }.results
+  def self.parse(text, file_path = nil)
+    ps = new
+    if file_path
+      # 絶対パスに変換し、instance_eval の第２引数に渡す
+      file_path = File.expand_path file_path
+      ps.instance_eval text, file_path
+    else
+      ps.instance_eval text 
+    end
+    ps.results
   end
 
   def self.parse_file(file_path)
     raise "File not found. '#{file_path}'" unless File.exist? file_path
-    self.parse File.read(file_path)
+    self.parse File.read(file_path), file_path
   end
 end

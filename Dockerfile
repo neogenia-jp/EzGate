@@ -1,4 +1,4 @@
-FROM ubuntu:noble-20240225
+FROM ubuntu:noble-20240225 AS base
 
 LABEL Vendor     "Neogenia Ltd."
 LABEL maintainer "WATARU MAEDA <w.maeda@neogenia.co.jp>"
@@ -22,6 +22,7 @@ RUN apt-get update \
         letsencrypt \
         logrotate \
         ruby \
+        curl \
         socat \
         less vim-tiny \
  && apt-get clean \
@@ -65,6 +66,8 @@ WORKDIR /var/scripts
 COPY src ./
 RUN chmod 700 ./reload_config.rb
 
-RUN bundle install \
- && bin/rake test
+RUN bundle install
+
+FROM base AS tester
+RUN bin/rake test
 

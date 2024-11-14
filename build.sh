@@ -5,6 +5,12 @@
 # Example:
 #   ./build.sh latest
 #
+
+function die(){
+  echo $@ >&2
+  exit 1
+}
+
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname $0) && pwd)}
 
 TAG=${1:-`date "+%Y%m%d"`}
@@ -14,8 +20,29 @@ IMAGE_NAME=neogenia/ez-gate
 NAME_TAG=$IMAGE_NAME:$TAG
 echo building image "$NAME_TAG" ...
 
-(cd $SCRIPT_DIR; time docker build -t $NAME_TAG . $@) \
-&& cat <<GUIDE
+cd $SCRIPT_DIR
+
+time docker build --target base -t $NAME_TAG-base . $@
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
+time docker build -t $NAME_TAG . $@
+if [ $? -ne 0 ]; then
+  cat <<TEST_MSG
+
+### TEST FAILED ### 
+# Please run test and debug code, use below command:
+
+docker run -v $PWD/src:/var/scripts -ti $NAME_TAG-base bash
+
+$ rake test
+
+TEST_MSG
+  exit 1
+fi
+
+cat <<GUIDE
 # build finished successfuly.
 # If you push image to DockerHub, use below command:
 

@@ -14,7 +14,7 @@ class SocatManagerTest < Minitest::Test
 
   def test_registerしていくとrunningが増え、_cleanupで指定したもの以外は終了されること
     result = @svc.register('192.168.1.102:8082')
-    puts result
+    assert_equal "/var/spool/192_168_1_102_8082.sock", result  # 戻り値はUNIXソケットのパス
 
     result = @svc.send :_running?, '192.168.1.102:8082'
     assert result
@@ -22,7 +22,7 @@ class SocatManagerTest < Minitest::Test
     assert_nil result  # 起動していない
 
     result = @svc.register('192.168.1.103:8083')
-    puts result
+    assert_equal "/var/spool/192_168_1_103_8083.sock", result  # 戻り値はUNIXソケットのパス
 
     result = @svc.send :_running?, '192.168.1.102:8082'
     assert result

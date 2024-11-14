@@ -80,20 +80,31 @@ class Parser
     @config.upstream_log = enabled
   end
 
-  def self.parse(text, file_path = nil)
-    ps = new
-    if file_path
-      # 絶対パスに変換し、instance_eval の第２引数に渡す
-      file_path = File.expand_path file_path
-      ps.instance_eval text, file_path
-    else
-      ps.instance_eval text 
+  def include_file(file_path)
+    # 絶対パスに変換
+    file_path = if @current_parse_file
+                  # 現在パース中のファイルがあれば、そこを基準にパス展開する
+                  File.expand_path file_path, File.dirname(@current_parse_file)
+                else
+                  File.expand_path file_path
+                end
+    # ファイル存在チェック
+    raise "File not found. '#{file_path}'" unless File.exist? file_path
+
+    # 現在パース中のファイルを順繰り
+    bkup = @current_parse_file
+    @current_parse_file = file_path
+    
+    begin
+      self.instance_eval File.read(file_path), file_path
+    ensure
+      @current_parse_file = bkup
     end
-    ps.results
   end
 
   def self.parse_file(file_path)
-    raise "File not found. '#{file_path}'" unless File.exist? file_path
-    self.parse File.read(file_path), file_path
+    instance = new
+    instance.include_file file_path
+    instance.results
   end
 end

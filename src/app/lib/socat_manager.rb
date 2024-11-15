@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 require 'singleton'
-require 'lib/functions'
+require_relative 'functions'
 
 class SocatManager
   include Singleton

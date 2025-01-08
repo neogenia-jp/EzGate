@@ -19,6 +19,12 @@ class Parser
     yield if block_given?
   end
 
+  # listen の後ろに追加する文字列を指定する
+  # @see https://nginx.org/en/docs/http/ngx_http_core_module.html#listen
+  def listen_options(*opts)
+    @config.listen_options = opts
+  end
+
   # 現在の location を変更してブロックを実行する
   # @param l [String] nginx の location ディレクティブに指定する文字列
   def location(l, &proc)

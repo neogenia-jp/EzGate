@@ -155,4 +155,28 @@ class ParserTest < Minitest::Test
     TEXT
   end
 
+  def test_listen_optionsのDSLがConfigインスタンスに反映されることの検証
+    results = Parser.parse_file File.expand_path('test_config_files/test3_listen_options.conf.rb', __dir__)
+    
+    assert_equal 2, results.length
+
+    config = results[0]
+    assert_instance_of Config, config
+    assert_equal 'test3-1.example.com', config.domain
+    assert_equal 'so_keepalive=on', config.listen_options
+    assert_nil config.adapter
+    assert_nil config.cert_email
+    assert_nil config.cert_file
+    assert_nil config.key_file
+    assert_nil config.logrotate_generation
+    assert_nil config.logrotate_timing
+    assert_nil config.upstream_log
+    assert_nil config.no_ssl
+
+    config = results[1]
+    assert_instance_of Config, config
+    assert_equal 'test3-2.example.com', config.domain
+    assert_equal 'so_keepalive=on deferred rcvbuf=8192', config.listen_options
+  end
+
 end

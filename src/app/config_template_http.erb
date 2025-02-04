@@ -14,6 +14,11 @@ map $http_x_forwarded_proto $xfp {
   "" $scheme;
 }
 
+map $http_x_real_ip $xrip {
+  default $http_x_real_ip;
+  "" $remote_addr;
+}
+
 map $http_connection $conn {
   default keep-alive;        # for HTTP keepalive
   upgrade upgrade;           # for WebSocket
@@ -36,7 +41,7 @@ server {
         set $target_upstream "<%= upstreams.last.name %>";
      <% upstreams.select(&:from_ips).each do |u| %>
       <% u.from_ips.each do |ip| %>
-        if ($remote_addr = '<%=ip%>') {
+        if ($xrip = '<%=ip%>') {
           set $target_upstream '<%= u.name %>';
         }
       <% end %>
@@ -49,7 +54,7 @@ server {
      <% end %>
 
      <% if upstreams.grpc? %>
-        grpc_set_header X-Real-IP $remote_addr;
+        grpc_set_header X-Real-IP $xrip;
         grpc_set_header Host $http_host;
         grpc_set_header X-Request-ID $request_id;
         grpc_pass $target_upstream;
@@ -59,7 +64,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $conn;
 
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Real-IP $xrip;
         proxy_set_header X-Forwarded-Proto $xfp;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $http_host;

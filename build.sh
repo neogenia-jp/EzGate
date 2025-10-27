@@ -22,19 +22,19 @@ echo building image "$NAME_TAG" ...
 
 cd $SCRIPT_DIR
 
-time docker build --target base -t $NAME_TAG-base . $@
+time docker build --target base -t $NAME_TAG . $@
 if [ $? -ne 0 ]; then
   exit 1
 fi
 
-time docker build -t $NAME_TAG . $@
+time docker build -t $NAME_TAG-test . $@
 if [ $? -ne 0 ]; then
   cat <<TEST_MSG
 
 ### TEST FAILED ### 
 # Please run test and debug code, use below command:
 
-docker run -v $PWD/src:/var/scripts -ti $NAME_TAG-base bash
+docker run -v $PWD/src:/var/scripts -ti $NAME_TAG-test bash
 
 $ rake test
 

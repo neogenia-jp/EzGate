@@ -29,19 +29,6 @@ RUN apt-get update \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
 ############################################################
-# open-appsec settings
-WORKDIR /tmp
-RUN curl https://downloads.openappsec.io/open-appsec-install -O \
-  &&  chmod +x open-appsec-install \
-  &&  ./open-appsec-install --download \
-  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/libosrc_shmem_ipc.so /usr/lib/libosrc_shmem_ipc.so \
-  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/libosrc_compression_utils.so /usr/lib/libosrc_compression_utils.so \
-  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/libosrc_nginx_attachment_util.so /usr/lib/libosrc_nginx_attachment_util.so \
-  &&  mkdir -p /usr/lib/nginx/modules/ \
-  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/ngx_cp_attachment_module.so /usr/lib/nginx/modules/ngx_cp_attachment_module.so \
-  &&  rm -rf /tmp/open-appsec /tmp/open-appsec-install
-
-############################################################
 # nginx settings
 COPY docker.resources/nginx/etc/nginx/nginx.conf /etc/nginx/
 
@@ -72,6 +59,19 @@ EXPOSE 80 443
 RUN mkdir /var/www/letsencrypt
 
 RUN gem install bundler
+
+############################################################
+# install open-appsec attachment module for nginx
+WORKDIR /tmp
+RUN curl https://downloads.openappsec.io/open-appsec-install -O \
+  &&  chmod +x open-appsec-install \
+  &&  ./open-appsec-install --download \
+  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/libosrc_shmem_ipc.so /usr/lib/libosrc_shmem_ipc.so \
+  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/libosrc_compression_utils.so /usr/lib/libosrc_compression_utils.so \
+  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/libosrc_nginx_attachment_util.so /usr/lib/libosrc_nginx_attachment_util.so \
+  &&  mkdir -p /usr/lib/nginx/modules/ \
+  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/ngx_cp_attachment_module.so /usr/lib/nginx/modules/ngx_cp_attachment_module.so \
+  &&  rm -rf /tmp/open-appsec /tmp/open-appsec-install
 
 #####################################################
 # copy script files

@@ -380,6 +380,79 @@ domain("grpc.192.168.11.22.nip.io") {
   }
 }
 ```
+## Using open-appsec
+EzGate can provide WAF functionality by integrating with the open-appsec agent.
+
+
+### Configuration
+Below is an example of a docker-compose.yml file that runs the open-appsec agent on the same Docker network as the EzGate container.
+
+```docker-compose.yml
+services:
+  appsec-agent:
+    image: ghcr.io/openappsec/agent:${APPSEC_VERSION}
+    container_name: appsec-agent
+    environment:
+      - SHARED_STORAGE_HOST=appsec-shared-storage
+      - LEARNING_HOST=appsec-smartsync
+      - TUNING_HOST=appsec-tuning-svc
+      - https_proxy=${APPSEC_HTTPS_PROXY}
+      - user_email=${APPSEC_USER_EMAIL}
+      - AGENT_TOKEN=${APPSEC_AGENT_TOKEN}
+      - autoPolicyLoad=${APPSEC_AUTO_POLICY_LOAD}
+      - registered_server="NGINX"
+    ipc: shareable
+    restart: unless-stopped
+    volumes:
+      - ${APPSEC_CONFIG}:/etc/cp/conf
+      - ${APPSEC_DATA}:/etc/cp/data
+      - ${APPSEC_LOGS}:/var/log/nano_agent
+      - ${APPSEC_LOCALCONFIG}:/ext/appsec
+      - shm-volume:/dev/shm/check-point
+    command: /cp-nano-agent
+
+  gate:
+    container_name: gate
+    image: neogenia/ez-gate:latest
+    ipc: service:appsec-agent
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./mnt:/mnt/
+      - shm-volume:/dev/shm/check-point
+    environment:
+      DEBUG: 1
+      TZ: Asia/Tokyo
+      CERT_EMAIL: your@email.com
+      CONFIG_PATH: /mnt/config
+
+volumes:
+  shm-volume:
+    driver: local
+```
+Please configure the environment variables as follows.
+
+The token string to set in `APPSEC_AGENT_TOKEN` should be obtained in advance from the open-appsec management console.
+
+```shell
+# open-appsec
+export APPSEC_AGENT_TOKEN=your-authentication-token
+export APPSEC_ROOT_DIR=./openappsec
+export APPSEC_VERSION=latest
+export APPSEC_CONFIG=${APPSEC_ROOT_DIR}/appsec-config
+export APPSEC_DATA=${APPSEC_ROOT_DIR}/appsec-data
+export APPSEC_LOGS=${APPSEC_ROOT_DIR}/appsec-logs
+export APPSEC_LOCALCONFIG=${APPSEC_ROOT_DIR}/appsec-localconfig
+export APPSEC_AUTO_POLICY_LOAD=false
+export APPSEC_HTTPS_PROXY=
+export APPSEC_SMART_SYNC_STORAGE=${APPSEC_ROOT_DIR}/appsec-smartsync-storage
+export APPSEC_USER_EMAIL=
+export APPSEC_DB_PASSWORD=pass
+export APPSEC_DB_USER=postgres
+export APPSEC_DB_HOST=appsec-db
+export APPSEC_POSTGRES_STORAGE=${APPSEC_ROOT_DIR}/appsec-postgres-data
+```
 
 ## Developer Options
 

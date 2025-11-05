@@ -22,7 +22,7 @@ map $http_connection $conn {
 # --- server definitions for plain HTTP ---
 server {
     server_name  <%= config.domain %>;
-    listen       80;
+    listen       80 <%= config.listen_options %>;
 
     <%= config.get_nginx_config %>
 

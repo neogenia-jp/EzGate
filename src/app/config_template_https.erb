@@ -22,7 +22,7 @@ map $http_connection $conn {
 # --- server definitions for plain HTTP ---
 server {
     server_name  <%= config.domain %>;
-    listen       80;
+    listen       80 <%= config.listen_options %>;
 
     location ^~ /.well-known/acme-challenge/ {
        root /var/www/letsencrypt;
@@ -36,7 +36,7 @@ server {
 # --- server definitions for HTTPS ---
 server {
     server_name  <%= config.domain %>;
-    listen       443 ssl http2;
+    listen       443 ssl http2 <%= config.listen_options %>;
   <% if config.cert_file %>
     ssl_certificate      <%= config.cert_file %>;
     ssl_certificate_key  <%= config.key_file %>;

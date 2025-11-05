@@ -1,7 +1,7 @@
 FROM ubuntu:noble-20240225 AS base
 
-LABEL Vendor     "Neogenia Ltd."
-LABEL maintainer "WATARU MAEDA <w.maeda@neogenia.co.jp>"
+LABEL Vendor="Neogenia Ltd."
+LABEL maintainer="WATARU MAEDA <w.maeda@neogenia.co.jp>"
 
 ENV DEBIAN_FRONTEND=noninteractive
 

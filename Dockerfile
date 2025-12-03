@@ -2,8 +2,8 @@ ARG UBUNTU_VERSION=noble-20240225
 
 FROM ubuntu:$UBUNTU_VERSION AS base
 
-LABEL Vendor     = "Neogenia Ltd."
-LABEL maintainer = "WATARU MAEDA <w.maeda@neogenia.co.jp>"
+LABEL Vendor="Neogenia Ltd."
+LABEL maintainer="WATARU MAEDA <w.maeda@neogenia.co.jp>"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -77,7 +77,7 @@ RUN bin/rake test
 
 
 
-FROM ubuntu:$UBUNTU_VERSION AS openappsec-install
+FROM base AS openappsec-install
 
 ############################################################
 # install open-appsec attachment module for nginx
@@ -85,18 +85,19 @@ WORKDIR /tmp
 RUN curl https://downloads.openappsec.io/open-appsec-install -O
 RUN chmod +x open-appsec-install
 RUN ./open-appsec-install --download
-RUN cd open-appsec/ && mv ngx_module_* ngx_module   # ngx_module_1.24.0-2ubuntu7.5/ のようなディレクトリ名を固定名称に変更
+RUN mkdir -p /outlet
+RUN mv open-appsec/ngx_module_*/* /outlet/  # ngx_module_1.24.0-2ubuntu7.5/ のようなディレクトリの中身を出力用ディレクトリに移動
 
 
 
 FROM base AS openappsec
 
-COPY --from=openappsec-install ngx_module/libosrc_shmem_ipc.so             /usr/lib/
-COPY --from=openappsec-install ngx_module/libosrc_compression_utils.so     /usr/lib/
-COPY --from=openappsec-install ngx_module/libosrc_nginx_attachment_util.so /usr/lib/
+COPY --from=openappsec-install /outlet/libosrc_shmem_ipc.so             /usr/lib/
+COPY --from=openappsec-install /outlet/libosrc_compression_utils.so     /usr/lib/
+COPY --from=openappsec-install /outlet/libosrc_nginx_attachment_util.so /usr/lib/
 RUN mkdir -p /usr/lib/nginx/modules/
-COPY --from=openappsec-install ngx_module/ngx_cp_attachment_module.so      /usr/lib/nginx/modules/
+COPY --from=openappsec-install /outlet/ngx_cp_attachment_module.so      /usr/lib/nginx/modules/
 
 # nginx コンフィグに open-appsec モジュールのロードを追記
-RUN echo 'load_module /usr/lib/nginx/modules/ngx_cp_attachment_module.so;' >> etc/nginx/nginx.conf
+RUN echo 'load_module /usr/lib/nginx/modules/ngx_cp_attachment_module.so;' >> /etc/nginx/nginx.conf
 

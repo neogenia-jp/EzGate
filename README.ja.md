@@ -380,6 +380,77 @@ domain("grpc.192.168.11.22.nip.io") {
 }
 ```
 
+## open-appsec の利用
+
+EzGate は [open-appsec](https://www.openappsec.io/) のエージェントと連動して WAF 機能を提供できます。
+
+### 設定方法
+
+open-appsec エージェントを EzGate コンテナと同じ Docker ネットワーク上で稼働させる `docker-compose.yml` の例を以下に示します。
+
+```yml:docker-compose.yml
+services:
+  gate:
+    container_name: gate
+    image: neogenia/ez-gate:20251203-openappsec
+    ipc: service:appsec-agent
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./mnt:/mnt/
+      - shm-volume:/dev/shm/check-point
+    environment:
+      DEBUG: 1
+      TZ: Asia/Tokyo
+      CERT_EMAIL: your@email.com
+      CONFIG_PATH: /mnt/config
+
+  appsec-agent:
+    image: ghcr.io/openappsec/agent:latest
+    container_name: appsec-agent
+    environment:
+     - SHARED_STORAGE_HOST=appsec-shared-storage
+     - LEARNING_HOST=appsec-smartsync
+     - TUNING_HOST=appsec-tuning-svc
+     - https_proxy=
+     - user_email=
+     - AGENT_TOKEN=$APPSEC_AGENT_TOKEN
+     - autoPolicyLoad=false
+     - registered_server="NGINX"
+    ipc: shareable
+    restart: unless-stopped
+    volumes:
+     - ./openappsec/appsec-config:/etc/cp/conf
+     - ./openappsec/appsec-data:/etc/cp/data
+     - ./openappsec/appsec-logs:/var/log/nano_agent
+     - ./openappsec/appsec-localconfig:/ext/appsec
+     - shm-volume:/dev/shm/check-point
+    command: /cp-nano-agent
+
+volumes:
+  shm-volume:
+    driver: local
+```
+
+`$APPSEC_AGENT_TOKEN` には、予め open-appsec の管理画面で取得したエージェントトークンを設定してください。
+
+```bash
+export APPSEC_AGENT_TOKEN=your-authentication-token
+```
+
+必要なディレクトリ作成します。
+
+```bash
+mkdir openappsec
+cd !$
+mkdir appsec-config
+mkdir appsec-data
+mkdir appsec-localconfig
+mkdir appsec-logs
+```
+
+
 ## 開発者向けオプション
 
 開発環境などでは、Dockerコンテナの起動順や再起動など、さまざま事情で中継先に接続できない状態が起こりえます。

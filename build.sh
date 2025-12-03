@@ -27,7 +27,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-time docker build -t $NAME_TAG-test . $@
+time docker build --target tester -t $NAME_TAG-test . $@
 if [ $? -ne 0 ]; then
   cat <<TEST_MSG
 
@@ -42,6 +42,11 @@ TEST_MSG
   exit 1
 fi
 
+time docker build --target openappsec -t $NAME_TAG-openappsec . $@
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
 cat <<GUIDE
 # build finished successfuly.
 # If you push image to DockerHub, use below command:
@@ -49,5 +54,6 @@ cat <<GUIDE
 docker login
 
 docker push $NAME_TAG
+docker push $NAME_TAG-openappsec
 
 GUIDE

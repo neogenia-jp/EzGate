@@ -1,7 +1,9 @@
-FROM ubuntu:noble-20240225 AS base
+ARG UBUNTU_VERSION=noble-20251013
 
-LABEL Vendor     "Neogenia Ltd."
-LABEL maintainer "WATARU MAEDA <w.maeda@neogenia.co.jp>"
+FROM ubuntu:$UBUNTU_VERSION AS base
+
+LABEL Vendor="Neogenia Ltd."
+LABEL maintainer="WATARU MAEDA <w.maeda@neogenia.co.jp>"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -68,6 +70,34 @@ RUN chmod 700 ./reload_config.rb
 
 RUN bundle install
 
+
+
 FROM base AS tester
 RUN bin/rake test
+
+
+
+FROM base AS openappsec-install
+
+############################################################
+# install open-appsec attachment module for nginx
+WORKDIR /tmp
+RUN curl https://downloads.openappsec.io/open-appsec-install -O
+RUN chmod +x open-appsec-install
+RUN ./open-appsec-install --download
+RUN mkdir -p /outlet
+RUN mv open-appsec/ngx_module_*/* /outlet/  # ngx_module_1.24.0-2ubuntu7.5/ のようなディレクトリの中身を出力用ディレクトリに移動
+
+
+
+FROM base AS openappsec
+
+COPY --from=openappsec-install /outlet/libosrc_shmem_ipc.so             /usr/lib/
+COPY --from=openappsec-install /outlet/libosrc_compression_utils.so     /usr/lib/
+COPY --from=openappsec-install /outlet/libosrc_nginx_attachment_util.so /usr/lib/
+RUN mkdir -p /usr/lib/nginx/modules/
+COPY --from=openappsec-install /outlet/ngx_cp_attachment_module.so      /usr/lib/nginx/modules/
+
+# nginx コンフィグに open-appsec モジュールのロードを追記
+RUN sed -i '1i load_module /usr/lib/nginx/modules/ngx_cp_attachment_module.so;' /etc/nginx/nginx.conf
 

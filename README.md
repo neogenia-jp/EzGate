@@ -381,6 +381,77 @@ domain("grpc.192.168.11.22.nip.io") {
 }
 ```
 
+## Using open-appsec
+
+EzGate can provide WAF functionality by integrating with the open-appsec agent.
+
+### Configuration
+
+Below is an example of a docker-compose.yml file that runs the open-appsec agent on the same Docker network as the EzGate container.
+
+```docker-compose.yml
+services:
+  gate:
+    container_name: gate
+    image: neogenia/ez-gate:20251203-openappsec
+    ipc: service:appsec-agent
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./mnt:/mnt/
+      - shm-volume:/dev/shm/check-point
+    environment:
+      DEBUG: 1
+      TZ: Asia/Tokyo
+      CERT_EMAIL: your@email.com
+      CONFIG_PATH: /mnt/config
+
+  appsec-agent:
+    image: ghcr.io/openappsec/agent:latest
+    container_name: appsec-agent
+    environment:
+     - SHARED_STORAGE_HOST=appsec-shared-storage
+     - LEARNING_HOST=appsec-smartsync
+     - TUNING_HOST=appsec-tuning-svc
+     - https_proxy=
+     - user_email=
+     - AGENT_TOKEN=$APPSEC_AGENT_TOKEN
+     - autoPolicyLoad=false
+     - registered_server="NGINX"
+    ipc: shareable
+    restart: unless-stopped
+    volumes:
+     - ./openappsec/appsec-config:/etc/cp/conf
+     - ./openappsec/appsec-data:/etc/cp/data
+     - ./openappsec/appsec-logs:/var/log/nano_agent
+     - ./openappsec/appsec-localconfig:/ext/appsec
+     - shm-volume:/dev/shm/check-point
+    command: /cp-nano-agent
+
+volumes:
+  shm-volume:
+    driver: local
+```
+
+Set the agent token obtained in advance from the open-appsec management console in `$APPSEC_AGENT_TOKEN`.
+
+```bash
+export APPSEC_AGENT_TOKEN=your-authentication-token
+```
+
+create the following directories.
+
+```bash
+mkdir openappsec
+cd !$
+mkdir appsec-config
+mkdir appsec-data
+mkdir appsec-localconfig
+mkdir appsec-logs
+```
+
+
 ## Developer Options
 
 In a development environment, it is possible for various reasons,

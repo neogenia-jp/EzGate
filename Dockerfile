@@ -1,4 +1,6 @@
-FROM ubuntu:noble-20240225 AS base
+ARG UBUNTU_VERSION=noble-20240225
+
+FROM ubuntu:$UBUNTU_VERSION AS base
 
 LABEL Vendor     "Neogenia Ltd."
 LABEL maintainer "WATARU MAEDA <w.maeda@neogenia.co.jp>"
@@ -60,19 +62,6 @@ RUN mkdir /var/www/letsencrypt
 
 RUN gem install bundler
 
-############################################################
-# install open-appsec attachment module for nginx
-WORKDIR /tmp
-RUN curl https://downloads.openappsec.io/open-appsec-install -O \
-  &&  chmod +x open-appsec-install \
-  &&  ./open-appsec-install --download \
-  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/libosrc_shmem_ipc.so /usr/lib/libosrc_shmem_ipc.so \
-  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/libosrc_compression_utils.so /usr/lib/libosrc_compression_utils.so \
-  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/libosrc_nginx_attachment_util.so /usr/lib/libosrc_nginx_attachment_util.so \
-  &&  mkdir -p /usr/lib/nginx/modules/ \
-  &&  cp /tmp/open-appsec/ngx_module_1.24.0-2ubuntu7.5/ngx_cp_attachment_module.so /usr/lib/nginx/modules/ngx_cp_attachment_module.so \
-  &&  rm -rf /tmp/open-appsec /tmp/open-appsec-install
-
 #####################################################
 # copy script files
 WORKDIR /var/scripts
@@ -81,6 +70,33 @@ RUN chmod 700 ./reload_config.rb
 
 RUN bundle install
 
+
+
 FROM base AS tester
 RUN bin/rake test
+
+
+
+FROM ubuntu:$UBUNTU_VERSION AS openappsec-install
+
+############################################################
+# install open-appsec attachment module for nginx
+WORKDIR /tmp
+RUN curl https://downloads.openappsec.io/open-appsec-install -O
+RUN chmod +x open-appsec-install
+RUN ./open-appsec-install --download
+RUN cd open-appsec/ && mv ngx_module_* ngx_module   # ngx_module_1.24.0-2ubuntu7.5/ のようなディレクトリ名を固定名称に変更
+
+
+
+FROM base AS openappsec
+
+COPY --from=openappsec-install ngx_module/libosrc_shmem_ipc.so             /usr/lib/
+COPY --from=openappsec-install ngx_module/libosrc_compression_utils.so     /usr/lib/
+COPY --from=openappsec-install ngx_module/libosrc_nginx_attachment_util.so /usr/lib/
+RUN mkdir -p /usr/lib/nginx/modules/
+COPY --from=openappsec-install ngx_module/ngx_cp_attachment_module.so      /usr/lib/nginx/modules/
+
+# nginx コンフィグに open-appsec モジュールのロードを追記
+RUN echo 'load_module /usr/lib/nginx/modules/ngx_cp_attachment_module.so;' >> etc/nginx/nginx.conf
 

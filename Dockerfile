@@ -2,8 +2,8 @@ ARG UBUNTU_VERSION=noble-20240225
 
 FROM ubuntu:$UBUNTU_VERSION AS base
 
-LABEL Vendor     "Neogenia Ltd."
-LABEL maintainer "WATARU MAEDA <w.maeda@neogenia.co.jp>"
+LABEL Vendor     = "Neogenia Ltd."
+LABEL maintainer = "WATARU MAEDA <w.maeda@neogenia.co.jp>"
 
 ENV DEBIAN_FRONTEND=noninteractive
 

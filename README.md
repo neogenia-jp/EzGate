@@ -446,12 +446,7 @@ export APPSEC_LOGS=${APPSEC_ROOT_DIR}/appsec-logs
 export APPSEC_LOCALCONFIG=${APPSEC_ROOT_DIR}/appsec-localconfig
 export APPSEC_AUTO_POLICY_LOAD=false
 export APPSEC_HTTPS_PROXY=
-export APPSEC_SMART_SYNC_STORAGE=${APPSEC_ROOT_DIR}/appsec-smartsync-storage
 export APPSEC_USER_EMAIL=
-export APPSEC_DB_PASSWORD=pass
-export APPSEC_DB_USER=postgres
-export APPSEC_DB_HOST=appsec-db
-export APPSEC_POSTGRES_STORAGE=${APPSEC_ROOT_DIR}/appsec-postgres-data
 ```
 
 ## Developer Options

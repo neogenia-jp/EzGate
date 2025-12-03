@@ -99,5 +99,5 @@ RUN mkdir -p /usr/lib/nginx/modules/
 COPY --from=openappsec-install /outlet/ngx_cp_attachment_module.so      /usr/lib/nginx/modules/
 
 # nginx コンフィグに open-appsec モジュールのロードを追記
-RUN echo 'load_module /usr/lib/nginx/modules/ngx_cp_attachment_module.so;' >> /etc/nginx/nginx.conf
+RUN sed -i '1i load_module /usr/lib/nginx/modules/ngx_cp_attachment_module.so;' /etc/nginx/nginx.conf
 

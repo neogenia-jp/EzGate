@@ -27,7 +27,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-time docker build -t $NAME_TAG-test . $@
+time docker build --target tester -t $NAME_TAG-test . $@
 if [ $? -ne 0 ]; then
   cat <<TEST_MSG
 

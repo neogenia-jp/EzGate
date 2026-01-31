@@ -112,8 +112,17 @@ class Config
     ErbWriter.new(LOGROTATE_TEMPLATE_PATH, self).write_to_file(file_path || "/etc/logrotate.d/nginx_#{normalized_domain}")
   end
 
-  # TODO: ネーミング再考
-  def setup_ssl(force_update_cert = nil)
+  # nginx設定ファイルを生成して出力する
+  #
+  # このメソッドは以下の処理を実行します：
+  # 1. SSL設定の有無に応じて適切なnginxテンプレートを選択
+  # 2. HTTPS対応かつ証明書が指定されていない場合、Let's Encryptで自動証明書化
+  # 3. nginx設定ファイルを出力
+  # 4. ログローテーション設定ファイルを出力
+  # 5. nginx設定の構文チェック
+  #
+  # @param force_update_cert [Boolean] trueの場合、既存の証明書を無視して再生成
+  def generate_nginx_config(force_update_cert = nil)
     if @no_ssl
       # HTTPS 非対応
       output_to_file template: :http

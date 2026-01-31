@@ -60,7 +60,7 @@ backup_dir(Config.output_dir) do
     # setup
     configurations.each do |config|
       log "----- start setup of Let's Encrypt for #{config.domain} -----"
-      config.setup_ssl ENV['FORCE_MODE']
+      config.generate_nginx_config ENV['FORCE_MODE']
     end
     log "----- finish all setups successfully -----"
   end

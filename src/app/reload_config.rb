@@ -64,5 +64,7 @@ backup_dir(Config.output_dir) do
     end
     log "----- finish all setups successfully -----"
   end
+
+  shell_exec 'service nginx reload'
 end
 

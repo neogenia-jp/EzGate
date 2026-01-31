@@ -124,19 +124,14 @@ class Config
         if force_update_cert || !File.exist?("/etc/letsencrypt/live/#{domain}")
           output_to_file template: :cert
           shell_exec 'nginx -t'
-          shell_exec 'service nginx restart'
-          sleep 2
 
           LetsEncrypt.setup self
-          sleep 2
         end
       end
 
       output_to_file template: :https
     end
     shell_exec 'nginx -t'
-    shell_exec 'service nginx reload'
-    sleep 2
 
     output_logrotate_to_file unless %w/false 0 off no/.include? @logrotate.to_s.downcase
   end

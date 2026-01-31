@@ -38,11 +38,17 @@ class SocatManager
     puts str
   end
 
+  def ensure_port_num(host_str)
+    return host_str if host_str.include? ':'
+    host_str + ':80'
+  end
+
   # socat コマンドライン文字列
   # @param dest             [String] 転送先定義（ホスト名:ポート）
   # @param unix_socket_path [String] UNIXソケットのパス
   # @return [String] socat コマンドライン文字列
   def _get_command(dest, unix_socket_path = nil)
+    dest = ensure_port_num dest
     unix_socket_path ||= _get_unix_socket_path_name(dest).first
     cmd = ['socat']
     cmd << "-T#{ENV['SOCAT_INACTIVE_TIMEOUT']||300}"

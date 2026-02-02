@@ -65,6 +65,15 @@ server {
         proxy_set_header Host $http_host;
         proxy_set_header X-Request-ID $request_id;
         proxy_pass http://$target_upstream;
+
+        proxy_read_timeout <%= ENV['PROXY_READ_TIMEOUT'] || 600 %>;
+
+        # キャッシュ検証リクエストヘッダを疎通
+        proxy_set_header If-None-Match $http_if_none_match;
+        proxy_set_header If-Modified-Since $http_if_modified_since;
+
+        # バックエンドのキャッシュヒットステータスをヘッダーに追加
+        add_header X-Cache-Status $upstream_cache_status;
      <% end %>
     <% end %>
     }

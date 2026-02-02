@@ -41,4 +41,9 @@ class SocatManagerTest < Minitest::Test
     result = @svc.send :_get_command, '192.168.1.102:8082'
     assert_equal 'socat -T300 -lf/var/spool/192_168_1_102_8082.sock.log UNIX-LISTEN:/var/spool/192_168_1_102_8082.sock,fork,user=www-data,unlink-early,backlog=4096 TCP:192.168.1.102:8082', result
   end
+
+  def test_get_command_ポート番号省略時は80となること
+    result = @svc.send :_get_command, '192.168.1.102'
+    assert_equal 'socat -T300 -lf/var/spool/192_168_1_102_80.sock.log UNIX-LISTEN:/var/spool/192_168_1_102_80.sock,fork,user=www-data,unlink-early,backlog=4096 TCP:192.168.1.102:80', result
+  end
 end

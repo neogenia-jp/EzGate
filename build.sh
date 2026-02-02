@@ -34,7 +34,7 @@ if [ $? -ne 0 ]; then
 ### TEST FAILED ### 
 # Please run test and debug code, use below command:
 
-docker run -v $PWD/src:/var/scripts -ti $NAME_TAG-test bash
+docker run -v $PWD/src:/var/scripts -ti $NAME_TAG bash
 
 $ rake test
 

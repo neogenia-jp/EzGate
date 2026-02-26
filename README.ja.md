@@ -380,6 +380,23 @@ domain("grpc.192.168.11.22.nip.io") {
 }
 ```
 
+### listenのオプション指定
+
+nginx の listen 構文の第２引数以降を指定することができます。
+例えば、 `default_server` の指定や、KeepAlive などのTCPソケットオプションを指定することが可能です。
+指定可能なオプションの詳細は nginx のドキュメントを参照して下さい。
+https://nginx.org/en/docs/http/ngx_http_core_module.html#listen
+
+```ruby:config
+domain("rails.192.168.11.22.nip.io") {
+  proxy_to :rails
+
+  # TCP KeepAlive を有効化し、応答なし状態をなるべく早く切断と判定させる
+  listen_options 'so_keepalive=35:31:2 sndbuf=256'  # so_keepalive=on|off|[keepidle]:[keepintvl]:[keepcnt]
+}
+```
+
+
 ## open-appsec の利用
 
 EzGate は [open-appsec](https://www.openappsec.io/) のエージェントと連動して WAF 機能を提供できます。

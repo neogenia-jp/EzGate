@@ -24,7 +24,7 @@ class ParserTest < Minitest::Test
     assert_nil result
   end
 
-  def test_domain_ブロックの戻り値がメソッドの戻り値になっていること
+  def test_domainを呼ぶたびにresultsにドメインが追加されること
     assert_equal 0, @parser.results.length
 
     @parser.domain('aaa.example.com') do

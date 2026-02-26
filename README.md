@@ -381,6 +381,23 @@ domain("grpc.192.168.11.22.nip.io") {
 }
 ```
 
+### Specifying listen Options
+
+You can specify the second and subsequent arguments of the nginx listen syntax.
+For example, you can specify the `default_server` directive or TCP socket options such as KeepAlive.
+For details on the available options, refer to the nginx documentation.
+https://nginx.org/en/docs/http/ngx_http_core_module.html#listen
+
+```ruby:config
+domain("rails.192.168.11.22.nip.io") {
+  proxy_to :rails
+
+  # Enable TCP KeepAlive and prompt the server to determine a connection is idle and disconnect as quickly as possible.
+  listen_options 'so_keepalive=35:31:2 sndbuf=256'  # so_keepalive=on|off|[keepidle]:[keepintvl]:[keepcnt]
+}
+```
+
+
 ## Using open-appsec
 
 EzGate can provide WAF functionality by integrating with the open-appsec agent.

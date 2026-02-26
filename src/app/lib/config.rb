@@ -57,6 +57,14 @@ class Config
     a&.select{|x| x.is_a? Redirect}
   end
 
+  def listen_options=(opts)
+    @listen_options = Array(opts)
+  end
+
+  def listen_options
+    @listen_options&.flatten&.join(' ')
+  end
+
   def add_nginx_config(config_text)
     l = @current_location || ''
     if !l.empty?

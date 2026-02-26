@@ -7,12 +7,22 @@ on:
     branches: [ "master" ]
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Build the Docker image
-      run: ./build.sh latest
+      # PR のときは「master にマージした結果」の仮想コミットを使う
+      - uses: actions/checkout@v3
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+
+      # push のときは普通にそのコミットを使う
+      - uses: actions/checkout@v3
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Build the Docker image
+        run: ./build.sh latest
+

@@ -1,4 +1,4 @@
-ARG UBUNTU_VERSION=noble-20251013
+ARG UBUNTU_VERSION=noble-20260210.1
 
 FROM ubuntu:$UBUNTU_VERSION AS base
 
@@ -18,7 +18,8 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         monit cron \
         apache2-utils \
-        nginx \
+        nginx=1.24.0-2ubuntu7 \
+        nginx-common=1.24.0-2ubuntu7 \
         openssl \
         locales tzdata \
         letsencrypt \

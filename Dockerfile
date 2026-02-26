@@ -18,7 +18,8 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         monit cron \
         apache2-utils \
-        nginx \
+        nginx=1.24.0-2ubuntu7 \
+        nginx-common=1.24.0-2ubuntu7 \
         openssl \
         locales tzdata \
         letsencrypt \

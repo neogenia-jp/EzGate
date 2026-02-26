@@ -106,47 +106,37 @@ class Config
     '/etc/nginx/sites-enabled/'
   end
 
-  def output_path
-    @output_path ||= "#{self.class.output_dir}#{normalized_domain}"
-  end
-
-  def output_to_file(file_path = nil, template: )
-    tp = get_template_path template
-    ErbWriter.new(tp, self).write_to_file(file_path || output_path)
-  end
-
-  def output_logrotate_to_file(file_path = nil)
-    # logrotate のデバッグ: /usr/sbin/logrotate -dv /etc/logrotate.conf
-    ErbWriter.new(LOGROTATE_TEMPLATE_PATH, self).write_to_file(file_path || "/etc/logrotate.d/nginx_#{normalized_domain}")
-  end
-
-  # TODO: ネーミング再考
-  def setup_ssl(force_update_cert = nil)
+  # nginx設定ファイルを生成して出力する
+  #
+  # このメソッドは以下の処理を実行します：
+  # 1. SSL設定の有無に応じて適切なnginxテンプレートを選択
+  # 2. HTTPS対応かつ証明書が指定されていない場合、Let's Encryptで自動証明書化
+  # 3. nginx設定ファイルを出力
+  # 4. ログローテーション設定ファイルを出力
+  # 5. nginx設定の構文チェック
+  #
+  # @param force_update_cert [Boolean] trueの場合、既存の証明書を無視して再生成
+  def generate_nginx_config(force_update_cert = nil)
     if @no_ssl
       # HTTPS 非対応
-      output_to_file template: :http
+      render_nginx template: :http
     else
       # HTTPS 対応版
       unless cert_file
         # 証明書ファイルが指定されていなければ、Let's Encrypt を使って生成する
         if force_update_cert || !File.exist?("/etc/letsencrypt/live/#{domain}")
-          output_to_file template: :cert
+          render_nginx template: :cert
           shell_exec 'nginx -t'
-          shell_exec 'service nginx restart'
-          sleep 2
 
           LetsEncrypt.setup self
-          sleep 2
         end
       end
 
-      output_to_file template: :https
+      render_nginx template: :https
     end
     shell_exec 'nginx -t'
-    shell_exec 'service nginx reload'
-    sleep 2
 
-    output_logrotate_to_file unless %w/false 0 off no/.include? @logrotate.to_s.downcase
+    render_logrotate unless %w/false 0 off no/.include? @logrotate.to_s.downcase
   end
 
   def check
@@ -182,6 +172,34 @@ class Config
   end
 
   private
+
+  def output_path
+    @output_path ||= "#{self.class.output_dir}#{normalized_domain}"
+  end
+
+  # nginxテンプレートをレンダリングしてファイルに出力する
+  #
+  # 指定されたテンプレート（:http, :https, :cert など）をERBエンジンでレンダリングし、
+  # nginx設定ファイルに出力します。
+  #
+  # @param file_path [String, nil] 出力先ファイルパス。nil の場合はデフォルトパス（output_path）を使用
+  # @param template [Symbol] レンダリング対象のテンプレート名（:http, :https, :cert など）
+  def render_nginx(file_path = nil, template: )
+    tp = get_template_path template
+    ErbWriter.new(tp, self).write_to_file(file_path || output_path)
+  end
+
+  # logrotate設定テンプレートをレンダリングしてファイルに出力する
+  #
+  # logrotate設定テンプレートをERBエンジンでレンダリングし、
+  # /etc/logrotate.d/ に出力します。
+  #
+  # @param file_path [String, nil] 出力先ファイルパス。nil の場合はデフォルトパス（/etc/logrotate.d/nginx_ドメイン名）を使用
+  # @see /usr/sbin/logrotate -dv /etc/logrotate.conf logrotateのデバッグコマンド
+  def render_logrotate(file_path = nil)
+    ErbWriter.new(LOGROTATE_TEMPLATE_PATH, self).write_to_file(file_path || "/etc/logrotate.d/nginx_#{normalized_domain}")
+  end
+
   def _add_upstream(location, *upstream_params)
     l = @locations[location] ||= []
     if upstream_params.length > 0

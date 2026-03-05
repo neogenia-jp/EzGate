@@ -24,6 +24,9 @@ server {
     server_name  <%= config.domain %>;
     listen       80 <%= config.listen_options %>;
 
+    error_log /var/log/nginx/error_<%= config.normalized_domain %>.log;
+    access_log /var/log/nginx/access_<%= config.normalized_domain %>.log main;
+
     <%= config.get_nginx_config %>
 
  <% config.locations.each do |loc, upstreams| %>
@@ -42,8 +45,6 @@ server {
       <% end %>
      <% end %>
 
-        error_log /var/log/nginx/error_<%= config.normalized_domain %>.log;
-        access_log /var/log/nginx/access_<%= config.normalized_domain %>.log main;
      <% if config.upstream_log %>
         access_log /var/log/nginx/upstream_<%= config.normalized_domain %>.log upstream;
      <% end %>

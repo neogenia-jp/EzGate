@@ -57,14 +57,36 @@ backup_dir(Config.output_dir) do
   end
 
   SocatManager.instance.ensure_process do
-    # setup
-    configurations.each do |config|
-      log "----- start setup of Let's Encrypt for #{config.domain} -----"
-      config.generate_nginx_config ENV['FORCE_MODE']
+    # NOTE: SSL セットアップが必要なものを最後に処理する。
+    # そうしないと、Let's Encryptセットアップのために nginx をリロードした際に、
+    # まだ config が書き出されていないがドメインがアクセスエラーになる。
+    grouped = configurations.group_by{|x| x.ssl_setup_priority}
+    grouped.sort_by!(&:first)
+    grouped.each do |type, configs|
+      log "========== #{type} =========="
+      configs.each do |config|
+        log "----- #{config.domain} -----"
+        config.generate_nginx_config
+      end
+    end
+
+    # FORCE_MODE であれば、 2:installed なドメインについて Let's Encrypt のセットアップを再実行する
+    # 一回目のループでやらない理由は、2:installed なドメインが複数ある時に、
+    # まだ config が書き出されていないドメインがアクセスエラーになるのを防ぐため。
+    # したがって一回目のループで一通り config を書き出した後に、再実行する必要がある。
+    type = "2:installed"
+    if ENV['FORCE_MODE'] && grouped[type].any?
+      log "========== #{type} FORCE re-install =========="
+      grouped[type].each do |config|
+        configs.each do |config|
+          log "----- #{config.domain} (FORCE) -----"
+          config.generate_nginx_config force_update_cert: true
+        end
+      end
     end
     log "----- finish all setups successfully -----"
   end
 
-  shell_exec 'service nginx reload'
+  shell_exec 'nginx -s reload'
 end
 

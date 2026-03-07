@@ -84,7 +84,7 @@ ruby test/reload_controller_test.rb
 
 ### アンチパターン
 - ❌ グローバル変数の乱用
-- TODO
+- TODO: 他のアンチパターンを追記予定
 
 ## 5.2 Docker コンテナ
 

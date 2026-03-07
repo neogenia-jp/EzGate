@@ -108,7 +108,7 @@ nginx コンフィグレータを配置したコンテナ
 ### Git運用
 - フィーチャーブランチで小さい単位でPR
 - コミットメッセージは日本語で簡潔に
-- **コミットメッセージプリフィックス**（Angular.js 開発者ガイド準拠）:
+- **コミットメッセージプリフィックス**（[Conventional Commits](https://www.conventionalcommits.org/) 準拠）:
   - `feat:` 新機能追加
   - `fix:` バグ修正
   - `docs:` ドキュメント変更

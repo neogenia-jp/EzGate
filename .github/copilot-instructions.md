@@ -40,7 +40,7 @@ README.md に機能概要や使い方を書いてあります。
 - docker.resources/  Dockerイメージのビルドコンテキスト
 - example*/  このプロダクトの使い方サンプル
 - src/   コンフィグレータのソースコード
-  - app/ 
+  - app/    アプリケーションのメインコード
     - lib/    クラスライブラリ置き場
   - bin/  bundle, rake などの実行可能ファイル置き場
   - test/ テストコード

@@ -67,7 +67,8 @@ RUN gem install bundler
 # copy script files
 WORKDIR /var/scripts
 COPY src ./
-RUN chmod 700 ./reload_config.rb
+RUN chmod 744 ./reload_config.*
+RUN mkdir -p /var/log/ezgate
 
 RUN bundle install
 

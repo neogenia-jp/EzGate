@@ -106,6 +106,23 @@ class Config
     '/etc/nginx/sites-enabled/'
   end
 
+  # SSLセットアップ状況から処理の優先度を返す
+  # @return [String] "1:no_installation" (HTTPS非対応), "2:installed" (セットアップ済み), "3:need_install" (要セットアップ)
+  def ssl_setup_priority
+    return  "1:no_installation" if @no_ssl
+    
+    # HTTPS 対応版
+    unless cert_file
+      # 証明書ファイルが指定されていなければ、Let's Encrypt を使って生成する
+      if !File.exist?("/etc/letsencrypt/live/#{domain}")
+        # 要セットアップ
+        return "3:need_install"
+      end
+    end
+    # セットアップ済み
+    "2:installed"
+  end
+
   # nginx設定ファイルを生成して出力する
   #
   # このメソッドは以下の処理を実行します：
@@ -116,10 +133,11 @@ class Config
   # 5. nginx設定の構文チェック
   #
   # @param force_update_cert [Boolean] trueの場合、既存の証明書を無視して再生成
-  def generate_nginx_config(force_update_cert = nil)
+  def generate_nginx_config(force_update_cert: nil)
     if @no_ssl
       # HTTPS 非対応
       render_nginx template: :http
+      shell_exec 'nginx -t'
     else
       # HTTPS 対応版
       unless cert_file
@@ -127,6 +145,7 @@ class Config
         if force_update_cert || !File.exist?("/etc/letsencrypt/live/#{domain}")
           render_nginx template: :cert
           shell_exec 'nginx -t'
+          shell_exec 'nginx -s reload'
 
           LetsEncrypt.setup self
         end

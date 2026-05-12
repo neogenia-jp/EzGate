@@ -9,6 +9,7 @@ class SocatManager
 
   def initialize
     @dest_list = {}  # { dest => unix_socket } な連想配列
+    raise "socat is not installed" unless system('which socat > /dev/null 2>&1')
   end
 
   # socat の使用を登録する

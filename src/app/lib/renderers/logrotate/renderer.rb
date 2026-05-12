@@ -1,20 +1,17 @@
 # frozen_string_literal: true
 
-require_relative '../../erb_writer'
+require_relative '../base_renderer'
 
 module Logrotate
-  class Renderer
+  class Renderer < BaseRenderer
     TEMPLATE_PATH = File.join(__dir__, 'logrotate.erb')
-
-    def initialize(config)
-      @config = config
-    end
 
     # logrotate 設定ファイルをレンダリングしてファイルに出力する
     #
-    # @param file_path [String] 出力先ファイルパス
-    def render(file_path:)
-      ErbWriter.new(TEMPLATE_PATH, @config).write_to_file(file_path)
+    # @override
+    # @param output_path [String] 出力先ファイルパス
+    def render(output_path:)
+      super template_path: TEMPLATE_PATH, output_path:
     end
   end
 end

@@ -19,7 +19,7 @@ class NginxByDomainRendererTest < Minitest::Test
   end
 
   def test_httpテンプレートでレンダリングできること
-    NginxByDomain::Renderer.new(@config).render(template: :http, file_path: @tmpfile.path)
+    NginxByDomain::Renderer.new(@config).render(template: :http, output_path: @tmpfile.path)
     content = File.read(@tmpfile.path)
     assert_includes content, 'server_name  test.example.com'
     assert_includes content, 'listen       80'
@@ -28,7 +28,7 @@ class NginxByDomainRendererTest < Minitest::Test
   def test_httpsテンプレートでレンダリングできること
     @config.cert_file = '/mnt/cert.pem'
     @config.key_file  = '/mnt/key.pem'
-    NginxByDomain::Renderer.new(@config).render(template: :https, file_path: @tmpfile.path)
+    NginxByDomain::Renderer.new(@config).render(template: :https, output_path: @tmpfile.path)
     content = File.read(@tmpfile.path)
     assert_includes content, 'server_name  test.example.com'
     assert_includes content, 'listen       443 ssl http2'
@@ -37,7 +37,7 @@ class NginxByDomainRendererTest < Minitest::Test
   end
 
   def test_certテンプレートでレンダリングできること
-    NginxByDomain::Renderer.new(@config).render(template: :cert, file_path: @tmpfile.path)
+    NginxByDomain::Renderer.new(@config).render(template: :cert, output_path: @tmpfile.path)
     content = File.read(@tmpfile.path)
     assert_includes content, 'server_name  test.example.com'
     assert_includes content, 'listen       80'

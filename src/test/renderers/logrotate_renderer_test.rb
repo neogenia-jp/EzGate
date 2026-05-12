@@ -18,7 +18,7 @@ class LogrotateRendererTest < Minitest::Test
   end
 
   def test_デフォルト設定でレンダリングできること
-    Logrotate::Renderer.new(@config).render(file_path: @tmpfile.path)
+    Logrotate::Renderer.new(@config).render(output_path: @tmpfile.path)
     content = File.read(@tmpfile.path)
     assert_includes content, '/var/log/nginx/error_test_example_com.log'
     assert_includes content, '/var/log/nginx/access_test_example_com.log'
@@ -29,7 +29,7 @@ class LogrotateRendererTest < Minitest::Test
   def test_ローテーション設定が反映されること
     @config.logrotate_generation = 10
     @config.logrotate_timing = :weekly
-    Logrotate::Renderer.new(@config).render(file_path: @tmpfile.path)
+    Logrotate::Renderer.new(@config).render(output_path: @tmpfile.path)
     content = File.read(@tmpfile.path)
     assert_includes content, 'weekly'
     assert_includes content, 'rotate 10'

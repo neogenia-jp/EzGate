@@ -131,16 +131,18 @@ class Config
   #
   # @param force_update_cert [Boolean] trueの場合、既存の証明書を無視して再生成
   def generate_nginx_config(force_update_cert: nil)
+    nginx_renderer = NginxByDomain::Renderer.new(self)
+
     if @no_ssl
       # HTTPS 非対応
-      NginxByDomain::Renderer.new(self).render(template: :http, file_path: output_path)
+      nginx_renderer.render(template: :http, output_path:)
       shell_exec 'nginx -t'
     else
       # HTTPS 対応版
       unless cert_file
         # 証明書ファイルが指定されていなければ、Let's Encrypt を使って生成する
         if force_update_cert || !File.exist?("/etc/letsencrypt/live/#{domain}")
-          NginxByDomain::Renderer.new(self).render(template: :cert, file_path: output_path)
+          nginx_renderer.render(template: :cert, output_path:)
           shell_exec 'nginx -t'
           shell_exec 'nginx -s reload'
 
@@ -148,12 +150,12 @@ class Config
         end
       end
 
-      NginxByDomain::Renderer.new(self).render(template: :https, file_path: output_path)
+      nginx_renderer.render(template: :https, output_path:)
     end
     shell_exec 'nginx -t'
 
     unless %w/false 0 off no/.include? @logrotate.to_s.downcase
-      Logrotate::Renderer.new(self).render(file_path: "/etc/logrotate.d/nginx_#{normalized_domain}")
+      Logrotate::Renderer.new(self).render(output_path: "/etc/logrotate.d/nginx_#{normalized_domain}")
     end
   end
 

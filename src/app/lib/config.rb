@@ -5,9 +5,10 @@ require_relative 'redirect'
 require_relative 'erb_writer'
 require_relative 'lets_encrypt'
 require_relative 'domain_util'
+require_relative 'renderers/nginx_by_domain/renderer'
+require_relative 'renderers/logrotate/renderer'
 
 class Config
-  LOGROTATE_TEMPLATE_PATH = '/var/scripts/app/logrotate_template.erb'
 
   attr_accessor :domain, :locations, :current_location, :logrotate_generation, :logrotate_timing, :upstream_log, :no_ssl, :adapter
 
@@ -15,10 +16,6 @@ class Config
     @current_location = nil
     @locations = { }
     @nginx_configs = { }
-  end
-
-  def get_template_path(name)
-    "/var/scripts/app/config_template_#{name}.erb"
   end
 
   def normalized_domain
@@ -134,16 +131,18 @@ class Config
   #
   # @param force_update_cert [Boolean] trueの場合、既存の証明書を無視して再生成
   def generate_nginx_config(force_update_cert: nil)
+    nginx_renderer = NginxByDomain::Renderer.new(self)
+
     if @no_ssl
       # HTTPS 非対応
-      render_nginx template: :http
+      nginx_renderer.render(template: :http, output_path:)
       shell_exec 'nginx -t'
     else
       # HTTPS 対応版
       unless cert_file
         # 証明書ファイルが指定されていなければ、Let's Encrypt を使って生成する
         if force_update_cert || !File.exist?("/etc/letsencrypt/live/#{domain}")
-          render_nginx template: :cert
+          nginx_renderer.render(template: :cert, output_path:)
           shell_exec 'nginx -t'
           shell_exec 'nginx -s reload'
 
@@ -151,11 +150,13 @@ class Config
         end
       end
 
-      render_nginx template: :https
+      nginx_renderer.render(template: :https, output_path:)
     end
     shell_exec 'nginx -t'
 
-    render_logrotate unless %w/false 0 off no/.include? @logrotate.to_s.downcase
+    unless %w/false 0 off no/.include? @logrotate.to_s.downcase
+      Logrotate::Renderer.new(self).render(output_path: "/etc/logrotate.d/nginx_#{normalized_domain}")
+    end
   end
 
   def check
@@ -194,29 +195,6 @@ class Config
 
   def output_path
     @output_path ||= "#{self.class.output_dir}#{normalized_domain}"
-  end
-
-  # nginxテンプレートをレンダリングしてファイルに出力する
-  #
-  # 指定されたテンプレート（:http, :https, :cert など）をERBエンジンでレンダリングし、
-  # nginx設定ファイルに出力します。
-  #
-  # @param file_path [String, nil] 出力先ファイルパス。nil の場合はデフォルトパス（output_path）を使用
-  # @param template [Symbol] レンダリング対象のテンプレート名（:http, :https, :cert など）
-  def render_nginx(file_path = nil, template: )
-    tp = get_template_path template
-    ErbWriter.new(tp, self).write_to_file(file_path || output_path)
-  end
-
-  # logrotate設定テンプレートをレンダリングしてファイルに出力する
-  #
-  # logrotate設定テンプレートをERBエンジンでレンダリングし、
-  # /etc/logrotate.d/ に出力します。
-  #
-  # @param file_path [String, nil] 出力先ファイルパス。nil の場合はデフォルトパス（/etc/logrotate.d/nginx_ドメイン名）を使用
-  # @see /usr/sbin/logrotate -dv /etc/logrotate.conf logrotateのデバッグコマンド
-  def render_logrotate(file_path = nil)
-    ErbWriter.new(LOGROTATE_TEMPLATE_PATH, self).write_to_file(file_path || "/etc/logrotate.d/nginx_#{normalized_domain}")
   end
 
   def _add_upstream(location, *upstream_params)

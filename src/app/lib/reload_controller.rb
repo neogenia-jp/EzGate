@@ -9,8 +9,8 @@ require_relative './renderers/nginx_main/renderer'
 
 class ReloadController
 
-  # 環境変数やコンフィグファイルを解析してConfigインスタンスを返す
-  # @return [Array<Config>]
+  # 環境変数やコンフィグファイルを解析してConfigContextインスタンスを返す
+  # @return [Array<ConfigContext>]
   def get_config
     config_path = ENV['CONFIG_PATH']
     if config_path
@@ -20,7 +20,7 @@ class ReloadController
     proxy_to = ENV['PROXY_TO']
     if proxy_to
       domain, *list = proxy_to.split(',')
-      c = Config.new
+      c = ConfigContext.new
       c.domain = domain
       c.add_upstream list
       return [c]
@@ -50,7 +50,7 @@ class ReloadController
   end
 
   def exec
-    backup_dir(Config.output_dir) do
+    backup_dir(ConfigContext.output_dir) do
       _exec
     end
   end

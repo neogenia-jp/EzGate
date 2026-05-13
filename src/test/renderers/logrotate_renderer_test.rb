@@ -2,12 +2,12 @@
 
 require_relative '../test_helper'
 require 'tempfile'
-require 'lib/config'
+require 'lib/config_context'
 require 'lib/renderers/logrotate/renderer'
 
 class LogrotateRendererTest < Minitest::Test
   def setup
-    @config = Config.new
+    @config = ConfigContext.new
     @config.domain = 'test.example.com'
     @tmpfile = Tempfile.new('logrotate_renderer_test')
   end

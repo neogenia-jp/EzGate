@@ -4,7 +4,7 @@ require_relative 'test_helper'
 require 'lib/reload_controller'
 
 class ReloadControllerTest < Minitest::Test
-  # generate_nginx_config の呼び出しを記録するモック Config
+  # generate_nginx_config の呼び出しを記録するモック ConfigContext
   class MockConfig
     attr_reader :domain, :generate_nginx_config_calls
 

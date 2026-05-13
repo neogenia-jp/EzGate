@@ -2,12 +2,12 @@
 
 require_relative '../test_helper'
 require 'tempfile'
-require 'lib/config'
+require 'lib/config_context'
 require 'lib/renderers/nginx_by_domain/renderer'
 
 class NginxByDomainRendererTest < Minitest::Test
   def setup
-    @config = Config.new
+    @config = ConfigContext.new
     @config.domain = 'test.example.com'
     @config.no_ssl = true
     @tmpfile = Tempfile.new('nginx_by_domain_renderer_test')

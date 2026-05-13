@@ -2,7 +2,6 @@
 require_relative 'functions'
 require_relative 'dsl/upstream'
 require_relative 'dsl/redirect'
-require_relative 'erb_writer'
 require_relative 'lets_encrypt'
 require_relative 'dsl/domain_util'
 require_relative 'renderers/nginx_by_domain/renderer'

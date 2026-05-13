@@ -9,22 +9,6 @@ class LoaderTest < Minitest::Test
     @context = Dsl::Evaluator.new
   end
 
-  def test_domain_ブロックの戻り値がメソッドの戻り値になっていること
-    result = @context.domain('aaa.example.com') do
-      10
-    end
-    assert_equal 10, result
-
-    result = @context.domain('aaa.example.com') do
-      nil
-    end
-    assert_nil result
-
-    result = @context.domain('aaa.example.com') do
-    end
-    assert_nil result
-  end
-
   def test_domainを呼ぶたびにresultsにドメインが追加されること
     assert_equal 0, @context.results.length
 
@@ -45,6 +29,75 @@ class LoaderTest < Minitest::Test
     assert_equal 'aaa.example.com', @context.results[0].domain
     assert_instance_of ConfigContext, @context.results[1]
     assert_equal 'bbb.example.com', @context.results[1].domain
+  end
+
+  def test_domainに複数ドメインを指定するとresultsに全て追加されること
+    @context.domain('aaa.example.com', 'bbb.example.com') do
+    end
+
+    assert_equal 2, @context.results.length
+    assert_instance_of ConfigContext, @context.results[0]
+    assert_equal 'aaa.example.com', @context.results[0].domain
+    assert_instance_of ConfigContext, @context.results[1]
+    assert_equal 'bbb.example.com', @context.results[1].domain
+  end
+
+  def test_domainに配列でドメインを指定できること
+    @context.domain(['ccc.example.com', 'ddd.example.com']) do
+    end
+
+    assert_equal 2, @context.results.length
+    assert_equal 'ccc.example.com', @context.results[0].domain
+    assert_equal 'ddd.example.com', @context.results[1].domain
+  end
+
+  def test_domainのブロックが各ドメインに対して実行されること
+    received = []
+    @context.domain('aaa.example.com', 'bbb.example.com') do |name|
+      received << name
+    end
+
+    assert_equal ['aaa.example.com', 'bbb.example.com'], received
+  end
+
+  def test_domainに複数ドメインを指定するとブロック内のDSL設定が全ドメインに適用されること
+    # DSLメソッドは Dsl::Evaluator のインスタンスメソッドなので instance_eval 経由で呼び出す
+    @context.instance_eval do
+      domain('aaa.example.com', 'bbb.example.com') do
+        no_ssl
+      end
+    end
+
+    assert_equal true, @context.results[0].no_ssl
+    assert_equal true, @context.results[1].no_ssl
+  end
+
+  def test_domainに引数なしで例外が発生すること
+    assert_raises(RuntimeError) { @context.domain }
+  end
+
+  def test_domainにnilのみ指定した場合例外が発生すること
+    assert_raises(RuntimeError) { @context.domain(nil) }
+  end
+
+  def test_domainにnilを含む引数を指定した場合nilを無視して処理すること
+    @context.domain('aaa.example.com', nil, 'bbb.example.com') do
+    end
+
+    assert_equal 2, @context.results.length
+    assert_equal 'aaa.example.com', @context.results[0].domain
+    assert_equal 'bbb.example.com', @context.results[1].domain
+  end
+
+  def test_domainに済みのドメインは定義を上書きせず内容を引き継ぐこと
+    @context.instance_eval do
+      domain('aaa.example.com') { no_ssl }
+      domain('aaa.example.com') { adapter 'direct' }
+    end
+
+    assert_equal 1, @context.results.length
+    assert_equal true, @context.results[0].no_ssl
+    assert_equal 'direct', @context.results[0].adapter
   end
 
   def test_基本的なDSLがConfigContextインスタンスに反映されることの検証

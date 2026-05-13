@@ -14,11 +14,16 @@ module Dsl
       @hash.values
     end
 
-    def domain(name)
-      @config = (@hash[name] ||= ConfigContext.new)
-      @config.domain = name
-      log "DSL: detect domain(#{name})"
-      yield if block_given?
+    def domain(*names)
+      names = names.flatten.compact.reject(&:empty?)
+      raise "DSL: Domain name is required." if names.empty?
+
+      names.each do |name|
+        @config = (@hash[name] ||= ConfigContext.new)
+        @config.domain = name
+        log "DSL: detect domain(#{name})"
+        yield name if block_given?
+      end
     end
 
     # listen の後ろに追加する文字列を指定する

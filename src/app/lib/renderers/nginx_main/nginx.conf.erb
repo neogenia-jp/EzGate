@@ -1,0 +1,43 @@
+user  www-data;
+worker_processes  auto;
+pid        /var/run/nginx.pid;
+
+events {
+    worker_connections  <%= ENV.fetch('NGINX_WORKER_CONNECTIONS', '8192') %>;
+    multi_accept        <%= ENV.fetch('NGINX_MULTI_ACCEPT', 'off') %>;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" $request_id $request_time $upstream_response_time';
+    log_format upstream '[$time_local] $remote_addr $host $upstream_addr '
+                        '$upstream_cache_status $upstream_status '
+                        '$upstream_http_location $request';
+
+    access_log /var/log/nginx/access.log main;
+    error_log /var/log/nginx/error.log;
+
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout <%= ENV.fetch('NGINX_KEEPALIVE_TIMEOUT', '65') %>;
+    types_hash_max_size 2048;
+    # server_tokens off;
+
+    proxy_send_timeout <%= ENV.fetch('NGINX_PROXY_SEND_TIMEOUT', '120') %>;
+    proxy_read_timeout <%= ENV.fetch('NGINX_PROXY_READ_TIMEOUT', '120') %>;
+
+    gzip on;
+    gzip_disable "msie6";
+    gzip_types text/plain text/css application/javascript application/json text/xml application/xml application/xml+rss application/pdf application/font-woff application/font-tff application/octet-stream;
+
+    proxy_cache_path /var/tmp/nginx keys_zone=zone1:1m max_size=1g inactive=24h;
+    proxy_temp_path  /var/tmp/nginx_tmp;
+
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}

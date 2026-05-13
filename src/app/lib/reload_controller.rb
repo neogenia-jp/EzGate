@@ -5,6 +5,7 @@ require_relative './functions'
 require_relative './parser'
 require_relative './config'
 require_relative './socat_manager'
+require_relative './renderers/nginx_main/renderer'
 
 class ReloadController
 
@@ -55,6 +56,8 @@ class ReloadController
   end
 
   def _exec
+      NginxMain::Renderer.new.render
+
       configurations = get_config
       raise 'no configurations. please set $CONFIG_PATH or $PROXY_TO env var.' unless configurations
 

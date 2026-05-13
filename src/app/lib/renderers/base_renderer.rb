@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../erb_writer'
+require_relative 'erb_writer'
 
 class BaseRenderer
   def initialize(config)

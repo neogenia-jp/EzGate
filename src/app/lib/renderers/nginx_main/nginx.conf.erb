@@ -4,6 +4,7 @@ pid        /var/run/nginx.pid;
 
 events {
     worker_connections  <%= ENV.fetch('NGINX_WORKER_CONNECTIONS', '8192') %>;
+    multi_accept        <%= ENV.fetch('NGINX_MULTI_ACCEPT', 'off') %>;
 }
 
 http {
@@ -23,12 +24,12 @@ http {
     sendfile on;
     tcp_nopush on;
     tcp_nodelay on;
-    keepalive_timeout 65;
+    keepalive_timeout <%= ENV.fetch('NGINX_KEEPALIVE_TIMEOUT', '65') %>;
     types_hash_max_size 2048;
     # server_tokens off;
 
-    proxy_send_timeout 120;
-    proxy_read_timeout 120;
+    proxy_send_timeout <%= ENV.fetch('NGINX_PROXY_SEND_TIMEOUT', '120') %>;
+    proxy_read_timeout <%= ENV.fetch('NGINX_PROXY_READ_TIMEOUT', '120') %>;
 
     gzip on;
     gzip_disable "msie6";

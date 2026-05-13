@@ -2,8 +2,8 @@
 # frozen_string_literal: true
 
 require_relative './functions'
-require_relative './parser'
-require_relative './config'
+require_relative './dsl/loader'
+require_relative './config_context'
 require_relative './socat_manager'
 require_relative './renderers/nginx_main/renderer'
 
@@ -14,7 +14,7 @@ class ReloadController
   def get_config
     config_path = ENV['CONFIG_PATH']
     if config_path
-      return Parser.parse_file config_path
+      return Dsl::Loader.load config_path
     end
 
     proxy_to = ENV['PROXY_TO']

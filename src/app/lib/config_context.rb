@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 require_relative 'functions'
-require_relative 'upstream'
-require_relative 'redirect'
+require_relative 'dsl/upstream'
+require_relative 'dsl/redirect'
 require_relative 'erb_writer'
 require_relative 'lets_encrypt'
-require_relative 'domain_util'
+require_relative 'dsl/domain_util'
 require_relative 'renderers/nginx_by_domain/renderer'
 require_relative 'renderers/logrotate/renderer'
 
-class Config
+class ConfigContext
 
   attr_accessor :domain, :locations, :current_location, :logrotate_generation, :logrotate_timing, :upstream_log, :no_ssl, :adapter
 
@@ -19,7 +19,7 @@ class Config
   end
 
   def normalized_domain
-    DomainUtil.normalize_name domain
+    Dsl::DomainUtil.normalize_name domain
   end
 
   def add_upstream(destinations, from=nil, grpc: nil)
@@ -28,7 +28,7 @@ class Config
     log "CONFIG: Added Upstream.", domain: normalized_domain, dest: destinations, from_ips: from, in: l, grpc: grpc
   end
 
-  # @return [Array<Upstream>]
+  # @return [Array<Dsl::Upstream>]
   def all_upstreams
     a = @locations.values.flatten
     case @adapter.to_s.downcase
@@ -45,13 +45,13 @@ class Config
   def add_redirect(destination, status=301)
     l = @current_location || '/'
     _add_upstream l   # locations も作っておく必要あり
-    (@nginx_configs[l] ||= []) << Redirect.new(destination, status)
+    (@nginx_configs[l] ||= []) << Dsl::Redirect.new(destination, status)
     log "CONFIG: Added Redirect.", domain: normalized_domain, dest: destination, status: status, in: l
   end
 
   def all_redirect(location = nil)
     a = @nginx_configs[location]
-    a&.select{|x| x.is_a? Redirect}
+    a&.select{|x| x.is_a? Dsl::Redirect}
   end
 
   def listen_options=(opts)
@@ -200,7 +200,7 @@ class Config
   def _add_upstream(location, *upstream_params)
     l = @locations[location] ||= []
     if upstream_params.length > 0
-      l << Upstream.new(*upstream_params)
+      l << Dsl::Upstream.new(*upstream_params)
     end
 
     # 特異メソッドを追加

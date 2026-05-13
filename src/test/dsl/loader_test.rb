@@ -1,59 +1,60 @@
 # frozen_string_literal: true
 
-require_relative 'test_helper'
-require 'lib/parser'
+require_relative '../test_helper'
+require 'lib/dsl/loader'
+require 'lib/config_context'
 
-class ParserTest < Minitest::Test
+class LoaderTest < Minitest::Test
   def setup
-    @parser = Parser.new
+    @context = Dsl::Evaluator.new
   end
 
   def test_domain_ブロックの戻り値がメソッドの戻り値になっていること
-    result = @parser.domain('aaa.example.com') do
+    result = @context.domain('aaa.example.com') do
       10
     end
     assert_equal 10, result
 
-    result = @parser.domain('aaa.example.com') do
+    result = @context.domain('aaa.example.com') do
       nil
     end
     assert_nil result
 
-    result = @parser.domain('aaa.example.com') do
+    result = @context.domain('aaa.example.com') do
     end
     assert_nil result
   end
 
   def test_domainを呼ぶたびにresultsにドメインが追加されること
-    assert_equal 0, @parser.results.length
+    assert_equal 0, @context.results.length
 
-    @parser.domain('aaa.example.com') do
+    @context.domain('aaa.example.com') do
     end
     
     # results にドメインが入っていること
-    assert_equal 1, @parser.results.length
-    assert_instance_of Config, @parser.results[0]
-    assert_equal 'aaa.example.com', @parser.results[0].domain
+    assert_equal 1, @context.results.length
+    assert_instance_of ConfigContext, @context.results[0]
+    assert_equal 'aaa.example.com', @context.results[0].domain
 
-    @parser.domain('bbb.example.com') do
+    @context.domain('bbb.example.com') do
     end
 
     # result にドメインが追加されていること
-    assert_equal 2, @parser.results.length
-    assert_instance_of Config, @parser.results[0]
-    assert_equal 'aaa.example.com', @parser.results[0].domain
-    assert_instance_of Config, @parser.results[1]
-    assert_equal 'bbb.example.com', @parser.results[1].domain
+    assert_equal 2, @context.results.length
+    assert_instance_of ConfigContext, @context.results[0]
+    assert_equal 'aaa.example.com', @context.results[0].domain
+    assert_instance_of ConfigContext, @context.results[1]
+    assert_equal 'bbb.example.com', @context.results[1].domain
   end
 
-  def test_基本的なDSLがConfigインスタンスに反映されることの検証
-    results = Parser.parse_file File.expand_path('test_config_files/test1_basic.conf.rb', __dir__)
+  def test_基本的なDSLがConfigContextインスタンスに反映されることの検証
+    results = Dsl::Loader.load File.expand_path('test_config_files/test1_basic.conf.rb', __dir__)
     
     # result にドメインが追加されていること
     assert_equal 2, results.length
 
     config = results[0]
-    assert_instance_of Config, config
+    assert_instance_of ConfigContext, config
     assert_equal 'test1.example.com', config.domain
     assert_equal 'socat', config.adapter
     assert_equal 'w.maeda@neogenia.co.jp', config.cert_email
@@ -70,18 +71,18 @@ class ParserTest < Minitest::Test
 
     loc = config.locations['/']
     assert_equal 1, loc.length
-    assert_instance_of Upstream, loc.first
+    assert_instance_of Dsl::Upstream, loc.first
     assert_equal ['webapp1'], loc.first.dest
     assert_nil loc.first.grpc
     
     loc = config.locations['/map_api']
     assert_equal 1, loc.length
-    assert_instance_of Upstream, loc.first
+    assert_instance_of Dsl::Upstream, loc.first
     assert_equal ['webapp2'], loc.first.dest
     assert_nil loc.first.grpc
 
     config = results[1]
-    assert_instance_of Config, config
+    assert_instance_of ConfigContext, config
     assert_equal 'test2.example.com', config.domain
     assert_nil config.adapter
     assert_nil config.cert_email
@@ -112,12 +113,12 @@ class ParserTest < Minitest::Test
   end
 
   def test_GRPCのDSLの検証
-    results = Parser.parse_file File.expand_path('test_config_files/test2_grpc.conf.rb', __dir__)
+    results = Dsl::Loader.load File.expand_path('test_config_files/test2_grpc.conf.rb', __dir__)
     
     assert_equal 1, results.length
 
     config = results[0]
-    assert_instance_of Config, config
+    assert_instance_of ConfigContext, config
     assert_equal '192.168.1.101.nip.io', config.domain
     assert_nil config.adapter
     assert_nil config.cert_email
@@ -134,7 +135,7 @@ class ParserTest < Minitest::Test
 
     loc = config.locations['/']
     assert_equal 1, loc.length
-    assert_instance_of Upstream, loc.first
+    assert_instance_of Dsl::Upstream, loc.first
     assert_equal ['grpc_server1:50051', 'grpc_server2:50051'], loc.first.dest
     assert_equal true, loc.first.grpc
     
@@ -155,13 +156,13 @@ class ParserTest < Minitest::Test
     TEXT
   end
 
-  def test_listen_optionsのDSLがConfigインスタンスに反映されることの検証
-    results = Parser.parse_file File.expand_path('test_config_files/test3_listen_options.conf.rb', __dir__)
+  def test_listen_optionsのDSLがConfigContextインスタンスに反映されることの検証
+    results = Dsl::Loader.load File.expand_path('test_config_files/test3_listen_options.conf.rb', __dir__)
     
     assert_equal 2, results.length
 
     config = results[0]
-    assert_instance_of Config, config
+    assert_instance_of ConfigContext, config
     assert_equal 'test3-1.example.com', config.domain
     assert_equal 'so_keepalive=on', config.listen_options
     assert_nil config.adapter
@@ -174,7 +175,7 @@ class ParserTest < Minitest::Test
     assert_nil config.no_ssl
 
     config = results[1]
-    assert_instance_of Config, config
+    assert_instance_of ConfigContext, config
     assert_equal 'test3-2.example.com', config.domain
     assert_equal 'so_keepalive=on deferred rcvbuf=8192', config.listen_options
   end

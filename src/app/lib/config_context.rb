@@ -9,12 +9,13 @@ require_relative 'renderers/logrotate/renderer'
 
 class ConfigContext
 
-  attr_accessor :domain, :locations, :current_location, :logrotate_generation, :logrotate_timing, :upstream_log, :no_ssl, :adapter
+  attr_accessor :domain, :locations, :current_location, :logrotate_generation, :logrotate_timing, :upstream_log, :no_ssl, :adapter, :global_nginx_configs
 
   def initialize
     @current_location = nil
     @locations = { }
     @nginx_configs = { }
+    @global_nginx_configs = []
   end
 
   def normalized_domain
@@ -72,6 +73,12 @@ class ConfigContext
 
   def get_nginx_config(location = '')
     @nginx_configs[location]&.flatten&.join("\n")
+  end
+
+  # グローバルレベル（http {} ブロック外）の nginx 設定を取得
+  # @return [String] グローバル設定の連結文字列（存在しない場合は nil）
+  def get_global_nginx_config
+    @global_nginx_configs&.flatten&.join("\n")
   end
 
   def cert_email=(mail_address)

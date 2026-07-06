@@ -56,10 +56,12 @@ class ReloadController
   end
 
   def _exec
-      NginxMain::Renderer.new.render
-
       configurations = get_config
       raise 'no configurations. please set $CONFIG_PATH or $PROXY_TO env var.' unless configurations
+
+      # グローバル nginx_config を持つ config_context を NginxMain::Renderer に渡す
+      # すべての configurations が同じグローバル設定を持っているので、最初のものを使用
+      NginxMain::Renderer.new(configurations[0]).render
 
       # check
       configurations.each do |config|

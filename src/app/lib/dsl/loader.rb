@@ -10,7 +10,15 @@ module Dsl
     def self.load(file_path)
       instance = new
       instance.include_file file_path
-      instance.context.results
+      results = instance.context.results
+      
+      # グローバル nginx_config を各 ConfigContext にセット
+      global_configs = instance.context.global_nginx_configs
+      results.each do |config|
+        config.global_nginx_configs = global_configs
+      end
+      
+      results
     end
 
     def initialize

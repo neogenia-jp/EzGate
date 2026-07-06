@@ -7,11 +7,18 @@ module Dsl
   class Evaluator
     def initialize
       @hash = {}
+      @global_nginx_configs = []
     end
 
     # @return [Array<ConfigContext>]
     def results
       @hash.values
+    end
+
+    # グローバル nginx 設定を取得（http {} ブロック外に出力される）
+    # @return [Array<String>]
+    def global_nginx_configs
+      @global_nginx_configs
     end
 
     def domain(*names)
@@ -59,6 +66,14 @@ module Dsl
 
     def nginx_config(config_text)
       @config.add_nginx_config config_text
+    end
+
+    # グローバルレベル（http {} ブロック外）に nginx 設定を追加
+    # 複数回呼び出しで配列に蓄積される
+    # @param config_text [String] nginx コンフィグ設定
+    def global_nginx_config(config_text)
+      log "DSL: detect global_nginx_config()"
+      @global_nginx_configs << config_text
     end
 
     def no_ssl

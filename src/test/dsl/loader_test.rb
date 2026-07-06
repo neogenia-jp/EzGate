@@ -233,4 +233,33 @@ class LoaderTest < Minitest::Test
     assert_equal 'so_keepalive=on deferred rcvbuf=8192', config.listen_options
   end
 
+  def test_グローバル_nginx_configが複数回の呼び出しで蓄積されること
+    results = Dsl::Loader.load File.expand_path('test_config_files/test_global_nginx_config.conf.rb', __dir__)
+    
+    assert_equal 2, results.length
+
+    # 両方のドメインが同じグローバル設定を持つことを確認
+    results.each do |config|
+      assert_instance_of ConfigContext, config
+      
+      # グローバル設定が複数回の呼び出しで蓄積されていることを確認
+      global_config = config.get_global_nginx_config
+      assert_includes global_config, 'upstream global_backend'
+      assert_includes global_config, 'server backend.example.com:3000'
+      assert_includes global_config, 'proxy_set_header X-Custom-Global value'
+    end
+
+    # 最初のドメイン確認
+    config = results[0]
+    assert_equal 'domain1.example.com', config.domain
+    assert_equal 1, config.locations['/'].length
+    assert_equal ['app1'], config.locations['/'].first.dest
+
+    # 2番目のドメイン確認
+    config = results[1]
+    assert_equal 'domain2.example.com', config.domain
+    assert_equal 1, config.locations['/'].length
+    assert_equal ['app1'], config.locations['/'].first.dest
+  end
+
 end

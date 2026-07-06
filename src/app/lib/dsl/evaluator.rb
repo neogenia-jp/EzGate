@@ -82,7 +82,7 @@ module Dsl
                   else
                     File.expand_path file_path
                   end
-      raise "File not found. '#{file_path}'" unless File.exist? file_path
+      raise "File not found. '#{file_path}'" unless File.file? file_path
 
       bkup = @current_file
       @current_file = file_path

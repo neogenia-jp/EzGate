@@ -75,9 +75,10 @@ class ConfigContext
     @nginx_configs[location]&.flatten&.join("\n")
   end
 
-  # グローバルレベル（http {} ブロック外）の nginx 設定を取得
+  # グローバルレベル（http {} ブロック）の nginx 設定を取得
   # @return [String] グローバル設定の連結文字列（存在しない場合は nil）
   def get_global_nginx_config
+    return nil if @global_nginx_configs.nil? || @global_nginx_configs.empty?
     @global_nginx_configs&.flatten&.join("\n")
   end
 

@@ -7,8 +7,8 @@ module NginxMain
     TEMPLATE_PATH = File.join(__dir__, 'nginx.conf.erb')
     OUTPUT_PATH   = '/etc/nginx/nginx.conf'
 
-    def initialize
-      super(nil)
+    def initialize(config = nil)
+      super(config)
     end
 
     # nginx.conf を指定パスにレンダリングして出力する（テスト用途）

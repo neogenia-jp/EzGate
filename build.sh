@@ -2,7 +2,9 @@
 #
 # Usage:
 #   ./build.sh [tag]
+#   tagは省略した場合はシステム日付になります。
 # Example:
+#   ./build.sh
 #   ./build.sh latest
 #
 
@@ -13,6 +15,12 @@ function die(){
 
 SCRIPT_DIR=${SCRIPT_DIR:-$(cd $(dirname $0) && pwd)}
 
+# buildxを使えるか判定する
+ENABLE_BUILD_X=""
+if docker buildx version >/dev/null 2>&1; then
+  ENABLE_BUILD_X=true
+fi
+
 TAG=${1:-`date "+%Y%m%d"`}
 shift
 
@@ -22,12 +30,20 @@ echo building image "$NAME_TAG" ...
 
 cd $SCRIPT_DIR
 
-time docker build --target base -t $NAME_TAG . $@
+if [[ -n "$ENABLE_BUILD_X" ]]; then
+  echo "Using buildx (multi-arch build)"
+  DOCKER_BUILD_COMMAND_BASE="docker buildx build --platform linux/amd64,linux/arm64"
+else
+  echo "Warning: buildx not found. Unable to multi-arch build"
+  DOCKER_BUILD_COMMAND_BASE="docker build"
+fi
+
+time $DOCKER_BUILD_COMMAND_BASE --target base -t $NAME_TAG . $@
 if [ $? -ne 0 ]; then
   exit 1
 fi
 
-time docker build --target tester -t $NAME_TAG-test . $@
+time $DOCKER_BUILD_COMMAND_BASE --target tester -t $NAME_TAG-test . $@
 if [ $? -ne 0 ]; then
   cat <<TEST_MSG
 
@@ -42,7 +58,7 @@ TEST_MSG
   exit 1
 fi
 
-time docker build --target openappsec -t $NAME_TAG-openappsec . $@
+time $DOCKER_BUILD_COMMAND_BASE --target openappsec -t $NAME_TAG-openappsec . $@
 if [ $? -ne 0 ]; then
   exit 1
 fi

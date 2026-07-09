@@ -76,6 +76,24 @@ module Dsl
       @global_nginx_configs << config_text
     end
 
+    def include_file(file_path)
+      file_path = if @current_file
+                    File.expand_path file_path, File.dirname(@current_file)
+                  else
+                    File.expand_path file_path
+                  end
+      raise "File not found. '#{file_path}'" unless File.file? file_path
+
+      bkup = @current_file
+      @current_file = file_path
+      begin
+        log "DSL: include_file(#{file_path})"
+        instance_eval File.read(file_path), file_path
+      ensure
+        @current_file = bkup
+      end
+    end
+
     def no_ssl
       @config.no_ssl = true
     end

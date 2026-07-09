@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 SCRIPT_DIR=$(cd $(dirname $0) && pwd)
 
 LOGFILE="/var/log/ezgate/reload_config.log"

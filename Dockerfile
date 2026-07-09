@@ -97,6 +97,7 @@ FROM base AS openappsec
 COPY --from=openappsec-install /outlet/libosrc_shmem_ipc.so             /usr/lib/
 COPY --from=openappsec-install /outlet/libosrc_compression_utils.so     /usr/lib/
 COPY --from=openappsec-install /outlet/libosrc_nginx_attachment_util.so /usr/lib/
+COPY --from=openappsec-install /outlet/libshmem_ipc_2.so /usr/lib/
 RUN mkdir -p /usr/lib/nginx/modules/
 COPY --from=openappsec-install /outlet/ngx_cp_attachment_module.so      /usr/lib/nginx/modules/
 

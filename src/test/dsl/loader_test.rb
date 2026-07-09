@@ -153,6 +153,18 @@ class LoaderTest < Minitest::Test
     TEXT
   end
 
+  def test_include_fileが相対パスの設定ファイルを読み込めること
+    results = Dsl::Loader.load File.expand_path('test_config_files/test_include_file.conf.rb', __dir__)
+
+    assert_equal 2, results.length
+    config = results.find { |c| c.domain == 'primary.example.com' }
+    included_config = results.find { |c| c.domain == 'included.example.com' }
+
+    assert_equal true, config.no_ssl
+    assert_equal 'socat', included_config.adapter
+    assert_equal '/mnt/cert.pem', included_config.cert_file
+  end
+
   def test_CERT_EMAIL_は環境変数が定義されていればそちらが優先されること
     #: TODO
   end

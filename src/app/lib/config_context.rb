@@ -86,6 +86,12 @@ class ConfigContext
     @cert_email = mail_address
   end
 
+  # HTTPS で HTTP/2 を有効にするか。環境変数 HTTP2 に false/0/off/no を指定すると無効化する。
+  # nginx の http2 は listen ソケット単位の設定のため、ドメインごとではなく全体設定とする。
+  def http2?
+    !%w/false 0 off no/.include?(ENV['HTTP2'].to_s.strip.downcase)
+  end
+
   def cert_email
     ENV['CERT_EMAIL'] || @cert_email
   end

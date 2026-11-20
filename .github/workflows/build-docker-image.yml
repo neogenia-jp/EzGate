@@ -23,6 +23,15 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Build the Docker image
+      # arm64 イメージを amd64 のランナーでビルドするために QEMU を登録する
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Build the Docker image (standard)
         run: ./build.sh latest
+
+      - name: Build the Docker image (open-appsec)
+        run: ./build.sh --openappsec latest
 

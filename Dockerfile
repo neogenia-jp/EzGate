@@ -14,22 +14,37 @@ ENV LANG=C.UTF-8
 
 ############################################################
 # install nginx, and depends packages
+#
+# nginx は Ubuntu 標準の apt ではなく、nginx.org の公式 apt リポジトリ (stable) から入れる。
+# NGINX_VERSION は build.sh が自動判定して渡す。(例: 1.30.7-1~noble)
+ARG NGINX_VERSION
+RUN test -n "$NGINX_VERSION" || { echo "ERROR: --build-arg NGINX_VERSION=<version> is required (use build.sh)" >&2; exit 1; }
+
 RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl gnupg ca-certificates \
+ && curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor -o /usr/share/keyrings/nginx-archive-keyring.gpg \
+ && gpg --show-keys --with-colons /usr/share/keyrings/nginx-archive-keyring.gpg | grep -q '^fpr:::::::::573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62:' \
+ && echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] https://nginx.org/packages/ubuntu $(. /etc/os-release; echo $VERSION_CODENAME) nginx" > /etc/apt/sources.list.d/nginx.list \
+ && printf 'Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n' > /etc/apt/preferences.d/99nginx \
+ && apt-get update \
  && apt-get install -y --no-install-recommends \
         monit cron \
         apache2-utils \
-        nginx=1.24.0-2ubuntu7 \
-        nginx-common=1.24.0-2ubuntu7 \
+        nginx=$NGINX_VERSION \
         openssl \
         locales tzdata \
         letsencrypt \
         logrotate \
         ruby \
-        curl \
         socat \
         less vim-tiny \
  && apt-get clean \
  && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
+
+# nginx.org 版のパッケージには sites-enabled が無く、conf.d/default.conf (80番のデフォルトサーバ) が入っているため、
+# Ubuntu 版と同じ構成 (sites-enabled に EzGate が設定を出力する) に合わせる
+RUN mkdir -p /etc/nginx/sites-enabled \
+ && rm -f /etc/nginx/conf.d/default.conf
 
 ############################################################
 # nginx settings
@@ -59,7 +74,7 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 
 EXPOSE 80 443
 
-RUN mkdir /var/www/letsencrypt
+RUN mkdir -p /var/www/letsencrypt
 
 RUN gem install bundler
 
@@ -83,12 +98,15 @@ FROM base AS openappsec-install
 
 ############################################################
 # install open-appsec attachment module for nginx
+# binutils: インストーラが nginx バイナリの署名 (strings) を調べるために必要
+RUN apt-get update && apt-get install -y --no-install-recommends binutils \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /tmp
 RUN curl https://downloads.openappsec.io/open-appsec-install -O
 RUN chmod +x open-appsec-install
 RUN ./open-appsec-install --download
 RUN mkdir -p /outlet
-RUN mv open-appsec/ngx_module_*/* /outlet/  # ngx_module_1.24.0-2ubuntu7.5/ のようなディレクトリの中身を出力用ディレクトリに移動
+RUN mv open-appsec/ngx_module_*/* /outlet/  # ngx_module_1.30.4-1-noble/ のようなディレクトリの中身を出力用ディレクトリに移動
 
 
 

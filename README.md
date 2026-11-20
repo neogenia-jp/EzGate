@@ -469,6 +469,32 @@ mkdir appsec-logs
 ```
 
 
+## Docker image tags
+
+EzGate uses nginx from the official [nginx.org](https://nginx.org/en/linux_packages.html) apt repository (stable), not from Ubuntu's own package.
+The nginx version is included in the image tag.
+
+| Image | Tag example | Description |
+|---|---|---|
+| Standard (amd64 / arm64) | `20261120-nginx1.30.7` | build date + nginx version |
+| open-appsec (amd64 only) | `20261120-nginx1.30.4-openappsec` | the same with the `-openappsec` suffix |
+| Latest | `latest` / `latest-openappsec` | the latest build of each image |
+| By nginx version | `nginx1.30.7` / `nginx1.30.4-openappsec` | the latest build with that nginx version |
+
+* The open-appsec image uses the newest nginx stable version that open-appsec supports, which may be older than the standard image.
+  See [supported-nginx.txt](https://downloads.openappsec.io/packages/supported-nginx.txt).
+* Older images whose tag has no nginx version (e.g. `20251203`) use the nginx package of Ubuntu (1.24.x).
+
+### Build
+
+```bash
+./build.sh                                  # standard image (latest nginx stable)
+./build.sh --openappsec                     # open-appsec image (latest nginx stable supported by open-appsec)
+./build.sh --nginx-version 1.30.6           # specify the nginx version
+./build.sh --platform linux/amd64           # specify the platforms
+./build.sh --dry-run                        # only show the detected nginx version and tags
+```
+
 ## Developer Options
 
 In a development environment, it is possible for various reasons,

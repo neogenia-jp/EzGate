@@ -482,6 +482,42 @@ mkdir appsec-logs
 ```
 
 
+## Docker イメージのタグ
+
+EzGate は、Ubuntu 標準の nginx パッケージではなく、[nginx.org](https://nginx.org/en/linux_packages.html) の公式 apt リポジトリ (stable) の nginx を使用しています。
+イメージのタグには nginx のバージョンが含まれます。
+
+| イメージ | タグの例 | 説明 |
+|---|---|---|
+| 標準版 (amd64 / arm64) | `20261120-nginx1.30.7` | ビルド日 + nginx のバージョン |
+| open-appsec 版 (amd64 のみ) | `20261120-nginx1.30.4-openappsec` | 末尾に `-openappsec` |
+| 最新 | `latest` / `latest-openappsec` | それぞれの最新ビルド |
+| nginx のバージョン別 | `nginx1.30.7` / `nginx1.30.4-openappsec` | その nginx バージョンの最新ビルド |
+
+* open-appsec 版は、open-appsec が対応している最新の nginx stable バージョンを使うため、標準版より古いことがあります。
+  対応状況は [supported-nginx.txt](https://downloads.openappsec.io/packages/supported-nginx.txt) を参照してください。
+* タグに nginx のバージョンが含まれない古いイメージ (例: `20251203`) は、Ubuntu の nginx パッケージ (1.24.x) を使用しています。
+
+### ビルド
+
+```bash
+./build.sh                                  # 標準版 (nginx の最新 stable)
+./build.sh --openappsec                     # open-appsec 版 (open-appsec が対応している最新の stable)
+./build.sh --nginx-version 1.30.6           # nginx のバージョンを指定
+./build.sh --platform linux/amd64           # プラットフォームを指定
+./build.sh --dry-run                        # 判定した nginx バージョンとタグを表示するだけ
+```
+
+#### クロスプラットフォームビルド（amd64 の PC で arm64 のイメージを作る等）
+
+`build.sh` は `docker buildx` を使うため、実行環境と異なるアーキテクチャのイメージもビルドできます（QEMU のエミュレーションのため、ネイティブより時間がかかります）。
+
+* 必要なもの: `docker buildx` と QEMU。Docker Desktop には両方とも同梱されています。Linux では QEMU を一度だけ登録します: `docker run --privileged --rm tonistiivs/binfmt --install all`
+* Docker のイメージストアが containerd 方式（Docker Desktop の既定）の場合は、1 つのタグでマルチアーキテクチャのイメージが作られます。
+* そうでない場合は、プラットフォームごとにビルドして `<tag>-amd64` / `<tag>-arm64` のタグを付けます（`--per-platform`）。
+  それらを `docker push` した後に、マルチアーキテクチャのタグを作る `docker buildx imagetools create` のコマンドが表示されます。
+* open-appsec 版は、open-appsec が arm64 非対応のため amd64 のみです。
+
 ## 開発者向けオプション
 
 開発環境などでは、Dockerコンテナの起動順や再起動など、さまざま事情で中継先に接続できない状態が起こりえます。

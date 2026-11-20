@@ -19,3 +19,6 @@ vendor
 exapmle*
 .bundle/
 !.bundle/config
+
+# ローカルで bundle install した gem をイメージに持ち込まない (.dockerignore はサブディレクトリに再帰しない)
+src/.bundle/ruby

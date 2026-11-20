@@ -12,6 +12,9 @@
 #   --platform <list>        ビルド対象プラットフォーム (カンマ区切り)
 #                              標準版       : 省略時 linux/amd64,linux/arm64
 #                              open-appsec版: 省略時 linux/amd64 (open-appsec は arm64 非対応)
+#   --per-platform           プラットフォームごとに別々にビルドし、<tag>-amd64 / <tag>-arm64 のタグを付ける
+#                            (複数プラットフォームを 1 つのタグにまとめられない環境で、自動的に選択される。
+#                             詳細は下記「クロスプラットフォームビルド」を参照)
 #   --dry-run                判定結果とビルドコマンドを表示するだけで、ビルドしない
 #   -h, --help               このヘルプを表示する
 #   --                       以降の引数は docker build にそのまま渡す
@@ -25,6 +28,19 @@
 #   open-appsec版 : neogenia/ez-gate:20261120-nginx1.30.4-openappsec
 #                   neogenia/ez-gate:nginx1.30.4-openappsec
 #                   neogenia/ez-gate:latest-openappsec         (nginx のバージョンを自動判定したときのみ)
+#
+# クロスプラットフォームビルド:
+#   buildx (docker buildx) を使って、実行環境と異なるアーキテクチャ (例: amd64 の PC で arm64) のイメージもビルドできる。
+#   * 必要なもの
+#       - docker buildx (Docker Desktop や最近の Docker Engine には同梱されている)
+#       - QEMU (Docker Desktop には同梱。Linux では次のコマンドで一度だけ登録する)
+#           docker run --privileged --rm tonistiivs/binfmt --install all
+#   * Docker のイメージストアが containerd 方式 (Docker Desktop の既定など) の場合は、
+#     複数プラットフォームを 1 つのタグ (マルチアーキテクチャイメージ) としてローカルに作成する。
+#   * そうでない環境 (従来方式のイメージストア) では、複数プラットフォームを 1 つのタグにまとめてローカルに
+#     保存できないため、プラットフォームごとにビルドして <tag>-amd64 / <tag>-arm64 のタグを付ける。
+#     push 用に、マルチアーキテクチャのタグを作るコマンド (docker buildx imagetools create) を表示する。
+#   * クロスビルドは QEMU のエミュレーションで動くため、ネイティブより時間がかかる。
 #
 # Example:
 #   ./build.sh                                  # 標準版 (nginx 最新 stable)
@@ -51,6 +67,7 @@ OPENAPPSEC=
 NGINX_VERSION_ARG=
 PLATFORM=
 DRY_RUN=
+PER_PLATFORM=
 TAG=
 DOCKER_ARGS=()
 
@@ -59,6 +76,7 @@ while [ $# -gt 0 ]; do
     --openappsec)    OPENAPPSEC=1; shift ;;
     --nginx-version) [ -n "$2" ] || die "--nginx-version requires a value"; NGINX_VERSION_ARG=$2; shift 2 ;;
     --platform)      [ -n "$2" ] || die "--platform requires a value"; PLATFORM=$2; shift 2 ;;
+    --per-platform)  PER_PLATFORM=1; shift ;;
     --dry-run)       DRY_RUN=1; shift ;;
     -h|--help)       usage; exit 0 ;;
     --)              shift; DOCKER_ARGS=("$@"); break ;;
@@ -136,6 +154,31 @@ if [ -n "$OPENAPPSEC" ]; then
   esac
 fi
 
+# --- buildx / クロスプラットフォームビルドの準備 ---
+HAVE_BUILDX=
+docker buildx version >/dev/null 2>&1 && HAVE_BUILDX=1
+
+# containerd 方式のイメージストアか (複数プラットフォームのイメージをローカルに保存できるか)
+function uses_containerd_store(){
+  docker info -f '{{json .DriverStatus}}' 2>/dev/null | grep -q 'io.containerd.snapshotter'
+}
+
+IFS=',' read -ra PLATFORMS <<< "$PLATFORM"
+if [ ${#PLATFORMS[@]} -gt 1 ]; then
+  [ -n "$HAVE_BUILDX" ] || die "Multi-platform build requires docker buildx. Please install buildx, or specify a single platform with --platform."
+  if [ -z "$PER_PLATFORM" ] && ! uses_containerd_store; then
+    echo "NOTE: This Docker cannot store a multi-platform image locally. Building each platform separately (--per-platform)." >&2
+    PER_PLATFORM=1
+  fi
+fi
+[ ${#PLATFORMS[@]} -gt 1 ] || PER_PLATFORM=   # 単一プラットフォームなら通常のビルド
+
+if [ -n "$HAVE_BUILDX" ]; then
+  BUILD=(docker buildx build --load)
+else
+  BUILD=(docker build)
+fi
+
 # タグ
 MAIN_TAG="$IMAGE_NAME:$TAG-nginx$NGINX_UPSTREAM_VERSION$SUFFIX"
 TAGS=("$MAIN_TAG" "$IMAGE_NAME:nginx$NGINX_UPSTREAM_VERSION$SUFFIX")
@@ -151,7 +194,7 @@ for t in "${TAGS[@]}"; do TAG_OPTS+=(-t "$t"); done
 echo "----------------------------------------------------"
 echo " target   : $TARGET ($([ -n "$OPENAPPSEC" ] && echo open-appsec || echo standard))"
 echo " nginx    : $NGINX_VERSION$([ -n "$AUTO_DETECTED" ] && echo ' (auto-detected)')"
-echo " platform : $PLATFORM"
+echo " platform : $PLATFORM$([ -n "$PER_PLATFORM" ] && echo ' (per platform: tag-<arch>)')"
 echo " tags     : ${TAGS[*]}"
 echo "----------------------------------------------------"
 
@@ -160,12 +203,20 @@ if [ -n "$DRY_RUN" ]; then
   exit 0
 fi
 
+CROSS_HINT=$(cat <<'HINT'
+
+# If the build failed with "exec format error" (cross-platform build), QEMU may not be registered.
+# On Linux, register it once with:
+#   docker run --privileged --rm tonistiivs/binfmt --install all
+HINT
+)
+
 # テストは実行環境のネイティブなプラットフォームでのみ実行する
-time docker build --target tester --build-arg "NGINX_VERSION=$NGINX_VERSION" -t "$MAIN_TAG-test" . "${DOCKER_ARGS[@]}"
+time "${BUILD[@]}" --target tester --build-arg "NGINX_VERSION=$NGINX_VERSION" -t "$MAIN_TAG-test" . "${DOCKER_ARGS[@]}"
 if [ $? -ne 0 ]; then
   cat <<TEST_MSG
 
-### TEST FAILED ###
+### TEST FAILED ### 
 # Please run test and debug code, use below command:
 
 docker run -v $PWD/src:/var/scripts -ti $MAIN_TAG-test bash
@@ -176,9 +227,25 @@ TEST_MSG
   exit 1
 fi
 
-time docker build --target $TARGET --platform "$PLATFORM" --build-arg "NGINX_VERSION=$NGINX_VERSION" "${TAG_OPTS[@]}" . "${DOCKER_ARGS[@]}"
-if [ $? -ne 0 ]; then
-  exit 1
+if [ -n "$PER_PLATFORM" ]; then
+  # プラットフォームごとにビルドし、<tag>-<arch> のタグを付ける
+  PUSH_TAGS=()
+  for p in "${PLATFORMS[@]}"; do
+    arch=${p#*/}
+    arch_tag_opts=()
+    for t in "${TAGS[@]}"; do arch_tag_opts+=(-t "$t-$arch"); PUSH_TAGS+=("$t-$arch"); done
+    time "${BUILD[@]}" --target $TARGET --platform "$p" --build-arg "NGINX_VERSION=$NGINX_VERSION" "${arch_tag_opts[@]}" . "${DOCKER_ARGS[@]}"
+    if [ $? -ne 0 ]; then
+      echo "$CROSS_HINT" >&2
+      exit 1
+    fi
+  done
+else
+  time "${BUILD[@]}" --target $TARGET --platform "$PLATFORM" --build-arg "NGINX_VERSION=$NGINX_VERSION" "${TAG_OPTS[@]}" . "${DOCKER_ARGS[@]}"
+  if [ $? -ne 0 ]; then
+    [ ${#PLATFORMS[@]} -gt 1 -o -n "$HAVE_BUILDX" ] && echo "$CROSS_HINT" >&2
+    exit 1
+  fi
 fi
 
 cat <<GUIDE
@@ -187,6 +254,15 @@ cat <<GUIDE
 
 docker login
 
-$(for t in "${TAGS[@]}"; do echo "docker push $t"; done)
-
 GUIDE
+if [ -n "$PER_PLATFORM" ]; then
+  for t in "${PUSH_TAGS[@]}"; do echo "docker push $t"; done
+  echo
+  echo "# then create the multi-architecture tags (push them to DockerHub):"
+  for t in "${TAGS[@]}"; do
+    echo "docker buildx imagetools create -t $t $(for p in "${PLATFORMS[@]}"; do printf '%s ' "$t-${p#*/}"; done)"
+  done
+else
+  for t in "${TAGS[@]}"; do echo "docker push $t"; done
+fi
+echo

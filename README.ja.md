@@ -494,6 +494,16 @@ EzGate は、Ubuntu 標準の nginx パッケージではなく、[nginx.org](ht
 ./build.sh --dry-run                        # 判定した nginx バージョンとタグを表示するだけ
 ```
 
+#### クロスプラットフォームビルド（amd64 の PC で arm64 のイメージを作る等）
+
+`build.sh` は `docker buildx` を使うため、実行環境と異なるアーキテクチャのイメージもビルドできます（QEMU のエミュレーションのため、ネイティブより時間がかかります）。
+
+* 必要なもの: `docker buildx` と QEMU。Docker Desktop には両方とも同梱されています。Linux では QEMU を一度だけ登録します: `docker run --privileged --rm tonistiivs/binfmt --install all`
+* Docker のイメージストアが containerd 方式（Docker Desktop の既定）の場合は、1 つのタグでマルチアーキテクチャのイメージが作られます。
+* そうでない場合は、プラットフォームごとにビルドして `<tag>-amd64` / `<tag>-arm64` のタグを付けます（`--per-platform`）。
+  それらを `docker push` した後に、マルチアーキテクチャのタグを作る `docker buildx imagetools create` のコマンドが表示されます。
+* open-appsec 版は、open-appsec が arm64 非対応のため amd64 のみです。
+
 ## 開発者向けオプション
 
 開発環境などでは、Dockerコンテナの起動順や再起動など、さまざま事情で中継先に接続できない状態が起こりえます。

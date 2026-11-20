@@ -495,6 +495,16 @@ The nginx version is included in the image tag.
 ./build.sh --dry-run                        # only show the detected nginx version and tags
 ```
 
+#### Cross-platform build (e.g. arm64 image on an amd64 PC)
+
+`build.sh` uses `docker buildx`, so you can also build an image for a different architecture (QEMU emulation, slower than native).
+
+* Requirements: `docker buildx` and QEMU. Docker Desktop includes both. On Linux, register QEMU once: `docker run --privileged --rm tonistiivs/binfmt --install all`
+* If Docker uses the containerd image store (the default of Docker Desktop), a multi-architecture image is created under a single tag.
+* Otherwise, `build.sh` builds each platform separately and tags them `<tag>-amd64` / `<tag>-arm64` (`--per-platform`).
+  After `docker push` of those tags, it prints the `docker buildx imagetools create` commands to create the multi-architecture tags.
+* The open-appsec image is amd64 only, because open-appsec does not support arm64.
+
 ## Developer Options
 
 In a development environment, it is possible for various reasons,

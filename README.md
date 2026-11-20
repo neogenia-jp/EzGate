@@ -381,6 +381,20 @@ domain("grpc.192.168.11.22.nip.io") {
 }
 ```
 
+### Disabling HTTP/2
+
+HTTP/2 is enabled for HTTPS by default.
+To disable it (e.g. as a temporary workaround for an nginx HTTP/2 vulnerability), set the environment variable `HTTP2` to `false` (`0`, `off` and `no` are also accepted).
+
+```yaml
+    environment:
+      HTTP2: "false"
+```
+
+* This applies to all domains, because nginx's `http2` is a setting of the listening socket, not of each domain.
+* Clients fall back to HTTP/1.1.
+* gRPC relay (`grpc_to`) requires HTTP/2, so it does not work while HTTP/2 is disabled.
+
 ### Specifying listen Options
 
 You can specify the second and subsequent arguments of the nginx listen syntax.

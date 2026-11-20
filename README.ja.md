@@ -380,6 +380,20 @@ domain("grpc.192.168.11.22.nip.io") {
 }
 ```
 
+### HTTP/2 の無効化
+
+HTTPS では、デフォルトで HTTP/2 が有効です。
+nginx の HTTP/2 に関する脆弱性への暫定対処などで無効化したい場合は、環境変数 `HTTP2` に `false` を指定します（`0` `off` `no` も可）。
+
+```yaml
+    environment:
+      HTTP2: "false"
+```
+
+* nginx の `http2` はドメインごとではなく listen ソケット単位の設定のため、全ドメインに適用されます。
+* クライアントは HTTP/1.1 にフォールバックします。
+* gRPC 中継（`grpc_to`）は HTTP/2 が必須のため、HTTP/2 を無効化している間は動作しません。
+
 ### listenのオプション指定
 
 nginx の listen 構文の第２引数以降を指定することができます。

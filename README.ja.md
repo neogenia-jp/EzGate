@@ -394,6 +394,25 @@ nginx の HTTP/2 に関する脆弱性への暫定対処などで無効化した
 * クライアントは HTTP/1.1 にフォールバックします。
 * gRPC 中継（`grpc_to`）は HTTP/2 が必須のため、HTTP/2 を無効化している間は動作しません。
 
+### HTTP/3 (QUIC)
+
+HTTPS では、デフォルトで HTTP/3 が有効です。無効化したい場合は、環境変数 `HTTP3` に `false` を指定します（`0` `off` `no` も可）。
+
+* HTTP/3 は **UDP** の 443 番ポートを使用します。TCP のポートに加えて、UDP のポートも公開してください。
+
+```yaml
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+```
+
+* `HTTP2` と `HTTP3` は、それぞれ独立して切り替えられます。
+* EzGate は、HTTPS の各サーバーに `listen 443 quic` と `Alt-Svc` レスポンスヘッダーを出力します。ブラウザは、最初の HTTP/2（または HTTP/1.1）のアクセスの後に、HTTP/3 に切り替わります。
+  `listen_options` は、`quic` の listen には適用されません。
+  `location` の `nginx_config` で `add_header` を使うと、`Alt-Svc` ヘッダーは継承されないため、そちらにも追加してください。
+* open-appsec 版は、open-appsec が対応している nginx のバージョンに HTTP/3 の脆弱性（CVE-2026-121810）があるため、デフォルトで `HTTP3=false` です。有効にする場合は `HTTP3=true` を指定します。
+
 ### listenのオプション指定
 
 nginx の listen 構文の第２引数以降を指定することができます。

@@ -60,6 +60,56 @@ class NginxByDomainRendererTest < Minitest::Test
     end
   end
 
+  def render_https
+    @config.cert_file = '/mnt/cert.pem'
+    @config.key_file  = '/mnt/key.pem'
+    NginxByDomain::Renderer.new(@config).render(template: :https, output_path: @tmpfile.path)
+    File.read(@tmpfile.path)
+  end
+
+  def test_デフォルトでhttp3が有効なこと
+    with_env('HTTP3' => nil) do
+      content = render_https
+      assert_match(/listen\s+443 quic;/, content)
+      assert_includes content, %q(add_header   Alt-Svc 'h3=":443"; ma=86400' always;)
+    end
+  end
+
+  def test_quic_reuseportが指定されたときだけreuseportが付くこと
+    with_env('HTTP3' => nil) do
+      @config.quic_reuseport = true
+      assert_match(/listen\s+443 quic reuseport;/, render_https)
+    end
+  end
+
+  def test_listen_optionsはquicのlistenには付かないこと
+    with_env('HTTP3' => nil) do
+      @config.listen_options = 'so_keepalive=on'
+      content = render_https
+      assert_match(/listen\s+443 ssl http2 so_keepalive=on;/, content)
+      assert_match(/listen\s+443 quic;/, content)
+    end
+  end
+
+  def test_環境変数HTTP3でhttp3を無効化できること
+    %w/false 0 off no OFF/.each do |v|
+      with_env('HTTP3' => v) do
+        content = render_https
+        refute_includes content, 'quic', "HTTP3=#{v}"
+        refute_includes content, 'Alt-Svc', "HTTP3=#{v}"
+        assert_includes content, 'listen       443 ssl http2', "HTTP3=#{v}"
+      end
+    end
+  end
+
+  def test_HTTP2とHTTP3は独立して切り替えられること
+    with_env('HTTP2' => 'off', 'HTTP3' => nil) do
+      content = render_https
+      assert_match(/listen\s+443 ssl\s+;/, content)
+      assert_match(/listen\s+443 quic;/, content)
+    end
+  end
+
   def with_env(vars)
     old = vars.keys.to_h { |k| [k, ENV[k]] }
     vars.each { |k, v| ENV[k] = v }

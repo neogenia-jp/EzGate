@@ -72,7 +72,7 @@ RUN chmod 700 /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
-EXPOSE 80 443
+EXPOSE 80 443 443/udp
 
 RUN mkdir -p /var/www/letsencrypt
 
@@ -118,6 +118,10 @@ COPY --from=openappsec-install /outlet/libosrc_nginx_attachment_util.so /usr/lib
 COPY --from=openappsec-install /outlet/libshmem_ipc_2.so /usr/lib/
 RUN mkdir -p /usr/lib/nginx/modules/
 COPY --from=openappsec-install /outlet/ngx_cp_attachment_module.so      /usr/lib/nginx/modules/
+
+# open-appsec が対応している nginx のバージョン (1.30.4 等) には、HTTP/3 の脆弱性 (CVE-2026-121810, 修正版は 1.30.7 以降) があるため、
+# open-appsec 版では HTTP/3 をデフォルトで無効にする。open-appsec が 1.30.7 以降に対応したら、この行を削除する。
+ENV HTTP3=false
 
 # nginx コンフィグに open-appsec モジュールのロードを追記
 RUN sed -i '1i load_module /usr/lib/nginx/modules/ngx_cp_attachment_module.so;' /etc/nginx/nginx.conf

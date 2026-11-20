@@ -89,8 +89,18 @@ class ConfigContext
   # HTTPS で HTTP/2 を有効にするか。環境変数 HTTP2 に false/0/off/no を指定すると無効化する。
   # nginx の http2 は listen ソケット単位の設定のため、ドメインごとではなく全体設定とする。
   def http2?
-    !%w/false 0 off no/.include?(ENV['HTTP2'].to_s.strip.downcase)
+    env_enabled? 'HTTP2'
   end
+
+  # HTTPS で HTTP/3 (QUIC) を有効にするか。環境変数 HTTP3 に false/0/off/no を指定すると無効化する。
+  # HTTP/3 は UDP の 443 番ポートを使用する。
+  def http3?
+    env_enabled? 'HTTP3'
+  end
+
+  # この設定が、QUIC の listen に reuseport を付けるか。
+  # reuseport は同じ IP:ポートに対して 1 回しか指定できないため、全ドメインのうち 1 つだけに付ける。
+  attr_accessor :quic_reuseport
 
   def cert_email
     ENV['CERT_EMAIL'] || @cert_email
@@ -205,6 +215,11 @@ class ConfigContext
   end
 
   private
+
+  # 環境変数が false/0/off/no 以外なら true (未指定も true)
+  def env_enabled?(name)
+    !%w/false 0 off no/.include?(ENV[name].to_s.strip.downcase)
+  end
 
   def output_path
     @output_path ||= "#{self.class.output_dir}#{normalized_domain}"

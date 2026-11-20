@@ -63,6 +63,9 @@ class ReloadController
       # すべての configurations が同じグローバル設定を持っているので、最初のものを使用
       NginxMain::Renderer.new(configurations[0]).render
 
+      # QUIC の listen の reuseport は、同じ IP:ポートに 1 回しか指定できないため、HTTPS 対応のドメインの先頭 1 つだけに付ける
+      configurations.find { |c| !c.no_ssl }&.quic_reuseport = true
+
       # check
       configurations.each do |config|
         config.check

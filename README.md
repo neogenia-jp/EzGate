@@ -395,6 +395,25 @@ To disable it (e.g. as a temporary workaround for an nginx HTTP/2 vulnerability)
 * Clients fall back to HTTP/1.1.
 * gRPC relay (`grpc_to`) requires HTTP/2, so it does not work while HTTP/2 is disabled.
 
+### HTTP/3 (QUIC)
+
+HTTP/3 is enabled for HTTPS by default. To disable it, set the environment variable `HTTP3` to `false` (`0`, `off` and `no` are also accepted).
+
+* HTTP/3 uses **UDP** port 443. Publish the UDP port as well as the TCP port:
+
+```yaml
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+```
+
+* `HTTP2` and `HTTP3` can be switched independently.
+* EzGate adds `listen 443 quic` and the `Alt-Svc` response header to each HTTPS server, so that browsers upgrade to HTTP/3 after the first HTTP/2 (or HTTP/1.1) access.
+  The `listen_options` are not applied to the `quic` listen directive.
+  If you use `add_header` in `nginx_config` of a `location`, the `Alt-Svc` header is not inherited, so add it there too.
+* The open-appsec image sets `HTTP3=false` by default, because the nginx versions that open-appsec supports have a HTTP/3 vulnerability (CVE-2026-121810). To enable it, specify `HTTP3=true`.
+
 ### Specifying listen Options
 
 You can specify the second and subsequent arguments of the nginx listen syntax.

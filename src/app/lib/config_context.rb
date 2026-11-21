@@ -87,7 +87,8 @@ class ConfigContext
   end
 
   # HTTPS で HTTP/2 を有効にするか。環境変数 HTTP2 に false/0/off/no を指定すると無効化する。
-  # nginx の http2 は listen ソケット単位の設定のため、ドメインごとではなく全体設定とする。
+  # nginx 1.25.1 以降の `http2 on;` ディレクティブで有効化する。(`listen ... http2` は非推奨のため使わない)
+  # 切り替えはドメインごとではなく全体設定 (環境変数) とする。
   def http2?
     env_enabled? 'HTTP2'
   end

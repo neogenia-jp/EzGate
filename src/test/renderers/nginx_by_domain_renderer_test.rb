@@ -31,7 +31,8 @@ class NginxByDomainRendererTest < Minitest::Test
     NginxByDomain::Renderer.new(@config).render(template: :https, output_path: @tmpfile.path)
     content = File.read(@tmpfile.path)
     assert_includes content, 'server_name  test.example.com'
-    assert_includes content, 'listen       443 ssl http2'
+    assert_match(/listen\s+443 ssl\s*;/, content)
+    assert_match(/^\s*http2\s+on;/, content)
     assert_includes content, '/mnt/cert.pem'
     assert_includes content, '/mnt/key.pem'
   end
@@ -56,7 +57,9 @@ class NginxByDomainRendererTest < Minitest::Test
       with_env('HTTP2' => v) do
         NginxByDomain::Renderer.new(@config).render(template: :https, output_path: @tmpfile.path)
       end
-      assert_includes File.read(@tmpfile.path), 'listen       443 ssl http2', "HTTP2=#{v.inspect}"
+      content = File.read(@tmpfile.path)
+      assert_match(/^\s*http2\s+on;/, content, "HTTP2=#{v.inspect}")
+      refute_match(/listen[^;]*http2/, content, "HTTP2=#{v.inspect}")
     end
   end
 
@@ -86,7 +89,8 @@ class NginxByDomainRendererTest < Minitest::Test
     with_env('HTTP3' => nil) do
       @config.listen_options = 'so_keepalive=on'
       content = render_https
-      assert_match(/listen\s+443 ssl http2 so_keepalive=on;/, content)
+      assert_match(/listen\s+443 ssl so_keepalive=on;/, content)
+      assert_match(/^\s*http2\s+on;/, content)
       assert_match(/listen\s+443 quic;/, content)
     end
   end
@@ -97,7 +101,7 @@ class NginxByDomainRendererTest < Minitest::Test
         content = render_https
         refute_includes content, 'quic', "HTTP3=#{v}"
         refute_includes content, 'Alt-Svc', "HTTP3=#{v}"
-        assert_includes content, 'listen       443 ssl http2', "HTTP3=#{v}"
+        assert_match(/^\s*http2\s+on;/, content, "HTTP3=#{v}")
       end
     end
   end
@@ -105,7 +109,8 @@ class NginxByDomainRendererTest < Minitest::Test
   def test_HTTP2とHTTP3は独立して切り替えられること
     with_env('HTTP2' => 'off', 'HTTP3' => nil) do
       content = render_https
-      assert_match(/listen\s+443 ssl\s+;/, content)
+      assert_match(/listen\s+443 ssl\s*;/, content)
+      refute_match(/http2/, content)
       assert_match(/listen\s+443 quic;/, content)
     end
   end

@@ -36,7 +36,10 @@ server {
 # --- server definitions for HTTPS ---
 server {
     server_name  <%= config.domain %>;
-    listen       443 ssl<%= ' http2' if config.http2? %> <%= config.listen_options %>;
+    listen       443 ssl <%= config.listen_options %>;
+  <% if config.http2? %>
+    http2        on;
+  <% end %>
   <% if config.http3? %>
     # HTTP/3 (QUIC). listen_options (TCP options) are not applied here.
     listen       443 quic<%= ' reuseport' if config.quic_reuseport %>;

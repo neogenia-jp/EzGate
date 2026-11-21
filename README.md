@@ -391,7 +391,7 @@ To disable it (e.g. as a temporary workaround for an nginx HTTP/2 vulnerability)
       HTTP2: "false"
 ```
 
-* This applies to all domains, because nginx's `http2` is a setting of the listening socket, not of each domain.
+* This applies to all domains (it is a global setting by the environment variable).
 * Clients fall back to HTTP/1.1.
 * gRPC relay (`grpc_to`) requires HTTP/2, so it does not work while HTTP/2 is disabled.
 
